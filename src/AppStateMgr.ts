@@ -187,15 +187,21 @@ export interface AppState {
    sampleRate:               number;
    agcRmsLevel:              number;
    f0Multiplier:             number;
+   specMultiplier:           number;
+   specShift:                number;
+   evenAmplShift:            number;
    spectrumCurveKnots:       Point[];
    amplitudeCurveKnots:      Point[];
    frequencyCurveKnots:      Point[]; }
 
 export function encodeAppStateUrlParms (appState: AppState) : string {
    const usp = new URLSearchParams();
-   setNum(usp, "sampleRate",   appState.sampleRate,   defaultSampleRate);
-   setNum(usp, "agcRmsLevel",  appState.agcRmsLevel,  defaultAgcRmsLevel);
-   setNum(usp, "f0Multiplier", appState.f0Multiplier, 1);
+   setNum(usp, "sampleRate",     appState.sampleRate,     defaultSampleRate);
+   setNum(usp, "agcRmsLevel",    appState.agcRmsLevel,    defaultAgcRmsLevel);
+   setNum(usp, "f0Multiplier",   appState.f0Multiplier,   1);
+   setNum(usp, "specMultiplier", appState.specMultiplier, 1);
+   setNum(usp, "specShift",      appState.specShift,      0);
+   setNum(usp, "evenAmplShift",  appState.evenAmplShift,  0);
    setKnots(usp, "spectrumCurve",  appState.spectrumCurveKnots,  CurveDataType.freqAsc, CurveDataType.db,   defaultSpectrumCurveKnots);
    setKnots(usp, "amplitudeCurve", appState.amplitudeCurveKnots, CurveDataType.timeAsc, CurveDataType.db,   defaultAmplitudeCurveKnots);
    setKnots(usp, "frequencyCurve", appState.frequencyCurveKnots, CurveDataType.timeAsc, CurveDataType.freq, defaultFrequencyCurveKnots);
@@ -204,9 +210,12 @@ export function encodeAppStateUrlParms (appState: AppState) : string {
 export function decodeAppStateUrlParms (urlParmsString: string) : AppState {
    const usp = new URLSearchParams(urlParmsString);
    const appState = <AppState>{};
-   appState.sampleRate   = getNum(usp, "sampleRate",   defaultSampleRate);
-   appState.agcRmsLevel  = getNum(usp, "agcRmsLevel",  defaultAgcRmsLevel);
-   appState.f0Multiplier = getNum(usp, "f0Multiplier", 1);
+   appState.sampleRate     = getNum(usp, "sampleRate",     defaultSampleRate);
+   appState.agcRmsLevel    = getNum(usp, "agcRmsLevel",    defaultAgcRmsLevel);
+   appState.f0Multiplier   = getNum(usp, "f0Multiplier",   1);
+   appState.specMultiplier = getNum(usp, "specMultiplier", 1);
+   appState.specShift      = getNum(usp, "specShift",      0);
+   appState.evenAmplShift  = getNum(usp, "evenAmplShift",  0);
    appState.spectrumCurveKnots  = getKnots(usp, "spectrumCurve",  CurveDataType.freqAsc, CurveDataType.db,   defaultSpectrumCurveKnots);
    appState.amplitudeCurveKnots = getKnots(usp, "amplitudeCurve", CurveDataType.timeAsc, CurveDataType.db,   defaultAmplitudeCurveKnots);
    appState.frequencyCurveKnots = getKnots(usp, "frequencyCurve", CurveDataType.timeAsc, CurveDataType.freq, defaultFrequencyCurveKnots);

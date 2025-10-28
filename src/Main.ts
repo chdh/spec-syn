@@ -13,6 +13,7 @@ import * as FunctionCurveEditor from "function-curve-editor";
 import {Point} from "function-curve-editor";
 
 var audioPlayer:                       InternalAudioPlayer;
+var originalUrlParmsString             = window.location.hash.substring(1);
 
 // GUI components:
 var spectrumEditorWidget:              FunctionCurveEditor.Widget;
@@ -96,9 +97,12 @@ function loadSignalViewer (widget: FunctionCurveViewer.Widget, signal: ArrayLike
 
 function getAppStateFromUi() {
    const appState = <AppState>{};
-   appState.sampleRate   = DomUtils.getValueNum("sampleRate");
-   appState.agcRmsLevel  = DomUtils.getValueNum("agcRmsLevel");
-   appState.f0Multiplier = DomUtils.getValueNum("f0Multiplier");
+   appState.sampleRate     = DomUtils.getValueNum("sampleRate");
+   appState.agcRmsLevel    = DomUtils.getValueNum("agcRmsLevel");
+   appState.f0Multiplier   = DomUtils.getValueNum("f0Multiplier");
+   appState.specMultiplier = DomUtils.getValueNum("specMultiplier");
+   appState.specShift      = DomUtils.getValueNum("specShift");
+   appState.evenAmplShift  = DomUtils.getValueNum("evenAmplShift");
    appState.spectrumCurveKnots = spectrumEditorWidget.getEditorState().knots;
    appState.amplitudeCurveKnots = amplitudeEditorWidget.getEditorState().knots;
    appState.frequencyCurveKnots = frequencyEditorWidget.getEditorState().knots;
@@ -108,9 +112,12 @@ function getLastKnotX (knots: Point[]) : number | undefined {
    return knots.length ? knots[knots.length - 1].x : undefined; }
 
 function setAppStateToUi (appState: AppState) {
-   DomUtils.setValueNum("sampleRate",   appState.sampleRate);
-   DomUtils.setValueNum("agcRmsLevel",  appState.agcRmsLevel);
-   DomUtils.setValueNum("f0Multiplier", appState.f0Multiplier);
+   DomUtils.setValueNum("sampleRate",     appState.sampleRate);
+   DomUtils.setValueNum("agcRmsLevel",    appState.agcRmsLevel);
+   DomUtils.setValueNum("f0Multiplier",   appState.f0Multiplier);
+   DomUtils.setValueNum("specMultiplier", appState.specMultiplier);
+   DomUtils.setValueNum("specShift",      appState.specShift);
+   DomUtils.setValueNum("evenAmplShift",  appState.evenAmplShift);
    const tMax = Math.min(getLastKnotX(appState.amplitudeCurveKnots) ?? 5, getLastKnotX(appState.frequencyCurveKnots) ?? 5);
    loadSpectrumCurveEditor(appState.spectrumCurveKnots);
    loadAmplitudeCurveEditor(appState.amplitudeCurveKnots, tMax);
@@ -128,21 +135,41 @@ function saveUiAppStateToUrl() {
       return; }
    window.history.pushState(null, "", "#" + urlParmsString); }
 
+function resetButton_click() {
+   const appState = AppStateMgr.decodeAppStateUrlParms(originalUrlParmsString);
+   setAppStateToUi(appState); }
+
 //-----------------------------------------------------------------------------
 
 function synthesizeButton_click() {
    audioPlayer.stop();
-   outputSampleRate   = DomUtils.getValueNum("sampleRate");
-   const agcRmsLevel  = DomUtils.getValueNum("agcRmsLevel");
-   const f0Multiplier = DomUtils.getValueNum("f0Multiplier");
-   const spectrumCurveFunction = spectrumEditorWidget.getFunction();
+
+   const sampleRate     = DomUtils.getValueNum("sampleRate");
+   const agcRmsLevel    = DomUtils.getValueNum("agcRmsLevel");
+   const f0Multiplier   = DomUtils.getValueNum("f0Multiplier");
+   const specMultiplier = DomUtils.getValueNum("specMultiplier");
+   const specShift      = DomUtils.getValueNum("specShift");
+   const evenAmplShift  = DomUtils.getValueNum("evenAmplShift");
+
+   const spectrumCurveFunction  = spectrumEditorWidget.getFunction();
    const amplitudeCurveFunction = amplitudeEditorWidget.getFunction();
-   const ampliduteEditorState = amplitudeEditorWidget.getEditorState();
    const frequencyCurveFunction = frequencyEditorWidget.getFunction();
+
+   const ampliduteEditorState = amplitudeEditorWidget.getEditorState();
    const frequencyEditorState = frequencyEditorWidget.getEditorState();
-   const duration = Math.min(getLastKnotX(ampliduteEditorState.knots) ?? 1, getLastKnotX(frequencyEditorState.knots) ?? 1);
-   const frequencyCurveFunction2 = (f0Multiplier == 1) ? frequencyCurveFunction : (t: number) => frequencyCurveFunction(t) * f0Multiplier;
-   outputSignal = SpecSyn.synthesize(spectrumCurveFunction, amplitudeCurveFunction, frequencyCurveFunction2, duration, outputSampleRate, agcRmsLevel);
+
+   const sp = <SpecSyn.SynthesizerParms>{};
+   sp.sampleRate = sampleRate;
+   sp.agcRmsLevel = agcRmsLevel;
+   sp.duration = Math.min(getLastKnotX(ampliduteEditorState.knots) ?? 1, getLastKnotX(frequencyEditorState.knots) ?? 1);
+   const spectrumCurveFunction2 = (specMultiplier == 1 && specShift == 0) ? spectrumCurveFunction : (f: number) => spectrumCurveFunction(f / specMultiplier - specShift);
+   sp.spectrumCurveFunctionOdd = spectrumCurveFunction2;
+   sp.spectrumCurveFunctionEven = (evenAmplShift == 0) ? spectrumCurveFunction2 : (f: number) => spectrumCurveFunction2(f) + evenAmplShift;
+   sp.amplitudeCurveFunction = amplitudeCurveFunction;
+   sp.frequencyCurveFunction = (f0Multiplier == 1) ? frequencyCurveFunction : (t: number) => frequencyCurveFunction(t) * f0Multiplier;
+
+   outputSignal = SpecSyn.synthesize(sp);
+   outputSampleRate = sampleRate;
    outputSignalValid = true;
    loadSignalViewer(outputSignalViewerWidget, outputSignal, outputSampleRate);
    refreshMainGui();
@@ -197,6 +224,7 @@ function startup() {
    outputSignalViewerWidget = new FunctionCurveViewer.Widget(outputSignalViewerCanvas);
    DomUtils.addClickEventListener("synthesizeButton", synthesizeButton_click);
    DomUtils.addClickEventListener("synthesizeAndPlayButton", synthesizeAndPlayButton_click);
+   DomUtils.addClickEventListener("resetButton", resetButton_click);
    DomUtils.addClickEventListener("playOutputButton", playOutputButton_click);
    DomUtils.addClickEventListener("saveOutputWavFileButton", saveOutputWavFileButton_click);
    DomUtils.addClickEventListener("functionCurveEditorHelpButton", functionCurveEditorHelpButton_click);
