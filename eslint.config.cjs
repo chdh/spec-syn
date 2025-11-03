@@ -87,6 +87,7 @@ const rules = {
    "@typescript-eslint/no-empty-object-type": "off",
    "@typescript-eslint/no-inferrable-types": "off",
    "@typescript-eslint/no-non-null-assertion": "off",
+   "@typescript-eslint/switch-exhaustiveness-check": "off",
    "@typescript-eslint/no-unnecessary-type-assertion": "off", // off because it does not work correctly
    "@typescript-eslint/no-unsafe-argument": "off",
    "@typescript-eslint/no-unsafe-assignment": "off",

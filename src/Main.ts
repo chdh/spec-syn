@@ -5,12 +5,15 @@ import {catchError} from "./Utils.ts";
 import InternalAudioPlayer from "./InternalAudioPlayer.js";
 import * as DomUtils from "./DomUtils.ts";
 import * as SpecSyn from "./SpecSyn.ts";
+import * as SpecSynDist from "./SpecSynDist.ts";
 import * as AppStateMgr from "./AppStateMgr.ts";
 import {AppState} from "./AppStateMgr.ts";
 import * as WavFileEncoder from "wav-file-encoder";
 import * as FunctionCurveViewer from "function-curve-viewer";
 import * as FunctionCurveEditor from "function-curve-editor";
 import {Point} from "function-curve-editor";
+
+const defaultMaxDisplayFreq            = 5500;
 
 var audioPlayer:                       InternalAudioPlayer;
 var originalUrlParmsString             = window.location.hash.substring(1);
@@ -32,7 +35,7 @@ function loadSpectrumCurveEditor (knots: Point[]) {
    const editorState: Partial<FunctionCurveEditor.EditorState> = {
       knots:           knots,
       xMin:            0,
-      xMax:            5500,
+      xMax:            defaultMaxDisplayFreq,
       yMin:            -100,
       yMax:            0,
       extendedDomain:  false,
@@ -41,7 +44,8 @@ function loadSpectrumCurveEditor (knots: Point[]) {
       primaryZoomMode: FunctionCurveEditor.ZoomMode.x,
       xAxisUnit:       "Hz",
       yAxisUnit:       "dB",
-      focusShield:     true };
+      focusShield:     true,
+      customPaintFunction: spectrumCurveEditor_customPaintFunction };
    spectrumEditorWidget.setEditorState(editorState); }
 
 function loadAmplitudeCurveEditor (knots: Point[], tMax: number) {
@@ -75,6 +79,20 @@ function loadFrequencyCurveEditor (knots: Point[], tMax: number) {
       yAxisUnit:       "Hz",
       focusShield:     true };
    frequencyEditorWidget.setEditorState(editorState); }
+
+function spectrumCurveEditor_customPaintFunction (pctx: FunctionCurveEditor.CustomPaintContext) {
+   paintSpectralDistribution(pctx);
+   paintAdjustedSpectrumCurve(pctx); }
+
+function paintAdjustedSpectrumCurve (pctx: FunctionCurveEditor.CustomPaintContext) {
+   if (pctx.pass != 1) {
+      return; }
+   const specMultiplier = DomUtils.getValueNum("specMultiplier");
+   const specShift = DomUtils.getValueNum("specShift");
+   if (specMultiplier == 1 && specShift == 0) {
+      return; }
+   const spectrumCurveFunctionAdj = getAdjustedSpectrumCurveFunction();
+   pctx.drawFunctionCurve(spectrumCurveFunctionAdj, 0, defaultMaxDisplayFreq, "#37ADFA"); }
 
 //--- Curve viewer ------------------------------------------------------------
 
@@ -121,7 +139,8 @@ function setAppStateToUi (appState: AppState) {
    const tMax = Math.min(getLastKnotX(appState.amplitudeCurveKnots) ?? 5, getLastKnotX(appState.frequencyCurveKnots) ?? 5);
    loadSpectrumCurveEditor(appState.spectrumCurveKnots);
    loadAmplitudeCurveEditor(appState.amplitudeCurveKnots, tMax);
-   loadFrequencyCurveEditor(appState.frequencyCurveKnots, tMax); }
+   loadFrequencyCurveEditor(appState.frequencyCurveKnots, tMax);
+   refreshSpecDistIfVisible(); }
 
 function loadUiAppStateFromUrl() {
    const urlParmsString = window.location.hash.substring(1);
@@ -139,34 +158,141 @@ function resetButton_click() {
    const appState = AppStateMgr.decodeAppStateUrlParms(originalUrlParmsString);
    setAppStateToUi(appState); }
 
-//-----------------------------------------------------------------------------
+//--- Spectral distribution ---------------------------------------------------
+
+const enum SpecDistPaintMode {none, background, bars, line}
+var specDistData:                      Float64Array;                           // spectral distribution for histogram or curve in GUI as user info to indicate significant frequencies
+
+function isSpecDistVisible() : boolean {
+   return DomUtils.getValueNum("specDistPaintMode") > 0; }
+
+function updateSpectralDistribution() {
+   const dp = <SpecSynDist.DistribParms>{};
+   dp.amplitudeCurveFunction = amplitudeEditorWidget.getFunction();
+   dp.frequencyCurveFunction = getAdjustedFrequencyCurveFunction();
+   dp.evenAmplShift = DomUtils.getValueNum("evenAmplShift");
+   dp.duration = getDuration();
+   dp.distribMaxFreq = defaultMaxDisplayFreq;
+   dp.distribRes = 500;
+   dp.stepWidth = 0.005;
+   specDistData = SpecSynDist.computeDistrib(dp); }
+
+function paintSpectralDistribution (pctx: FunctionCurveEditor.CustomPaintContext) {
+   if (pctx.pass != 1 || !specDistData) {
+      return; }
+   const paintMode: SpecDistPaintMode = DomUtils.getValueNum("specDistPaintMode");
+   if (!paintMode) {
+      return; }
+   const ctx = pctx.ctx;
+   ctx.save();
+   let penDown = false;
+   switch (paintMode) {
+      case SpecDistPaintMode.bars: {
+         ctx.fillStyle = "#DBF1FF";
+         break; }
+      case SpecDistPaintMode.line: {
+         ctx.beginPath();
+         break; }}
+   const lyTop = -5;                                                           // top y for bars and lines
+   const lyBottom = -40;                                                       // bottom y for bars and lines
+   const cyBottom = pctx.mapLogicalToCanvasYCoordinate(lyBottom);
+   const distribRes = specDistData.length;
+   for (let i = 0; i < distribRes; i++) {
+      const v = specDistData[i];
+      const lx1 = defaultMaxDisplayFreq / distribRes * i;
+      const lx2 = defaultMaxDisplayFreq / distribRes * (i + 1);
+      const cx1 = pctx.mapLogicalToCanvasXCoordinate(lx1);
+      const cx2 = pctx.mapLogicalToCanvasXCoordinate(lx2);
+      switch (paintMode) {
+         case SpecDistPaintMode.background: {
+            if (!isFinite(v)) {
+               continue; }
+            const cutOffDb = 30;
+            const satExt = 15;
+            const sat = Math.round(Math.max(0, 100 - (v + cutOffDb) / cutOffDb * satExt));
+            if (sat >= 100) {
+               continue; }
+            ctx.fillStyle = "hsl(204, 100%, " + sat + "%)";
+            ctx.fillRect(cx1, 0, cx2 - cx1, ctx.canvas.height);
+            break; }
+         case SpecDistPaintMode.bars: {
+            const cy = pctx.mapLogicalToCanvasYCoordinate(lyTop + v);
+            if (!isFinite(v) || cy >= cyBottom) {
+               continue; }
+            ctx.fillRect(cx1, cy, cx2 - cx1, cyBottom - cy);
+            break; }
+         case SpecDistPaintMode.line: {
+            const cy = pctx.mapLogicalToCanvasYCoordinate(lyTop + v);
+            if (!isFinite(v) || v < -200 || cy >= cyBottom) {
+               if (penDown) {
+                  ctx.lineTo(cx1, cyBottom);
+                  penDown = false; }
+               continue; }
+            if (!penDown) {
+               ctx.moveTo(cx1, cyBottom);
+               penDown = true; }
+            ctx.lineTo(cx1, cy);
+            ctx.lineTo(cx2, cy);
+            break; }}}
+   switch (paintMode) {
+      case SpecDistPaintMode.line: {
+         ctx.strokeStyle = "#37A0E6";
+         ctx.stroke();
+         break; }}
+   ctx.restore(); }
+
+function refreshSpecDist() {
+   if (isSpecDistVisible()) {
+      updateSpectralDistribution(); }
+   refreshSpectrumEditor(); }
+
+function refreshSpecDistIfVisible() {
+   if (isSpecDistVisible()) {
+      refreshSpecDist(); }}
+
+//--- Main functions ----------------------------------------------------------
+
+function refreshSpectrumEditor() {
+   spectrumEditorWidget.requestRefresh(); }
+
+function getDuration() {
+   const ampliduteEditorState = amplitudeEditorWidget.getEditorState();
+   const frequencyEditorState = frequencyEditorWidget.getEditorState();
+   return Math.min(getLastKnotX(ampliduteEditorState.knots) ?? 1, getLastKnotX(frequencyEditorState.knots) ?? 1); }
+
+function getAdjustedFrequencyCurveFunction() {
+   const f0Multiplier = DomUtils.getValueNum("f0Multiplier");
+   const frequencyCurveFunction = frequencyEditorWidget.getFunction();
+   if (f0Multiplier == 1) {
+      return frequencyCurveFunction; }
+   return (t: number) => frequencyCurveFunction(t) * f0Multiplier; }
+
+function getAdjustedSpectrumCurveFunction() {
+   const specMultiplier = DomUtils.getValueNum("specMultiplier");
+   const specShift = DomUtils.getValueNum("specShift");
+   const spectrumCurveFunction  = spectrumEditorWidget.getFunction();
+   if (specMultiplier == 1 && specShift == 0) {
+      return spectrumCurveFunction; }
+   return (f: number) => spectrumCurveFunction(f / specMultiplier - specShift); }
 
 function synthesizeButton_click() {
    audioPlayer.stop();
 
    const sampleRate     = DomUtils.getValueNum("sampleRate");
    const agcRmsLevel    = DomUtils.getValueNum("agcRmsLevel");
-   const f0Multiplier   = DomUtils.getValueNum("f0Multiplier");
-   const specMultiplier = DomUtils.getValueNum("specMultiplier");
-   const specShift      = DomUtils.getValueNum("specShift");
    const evenAmplShift  = DomUtils.getValueNum("evenAmplShift");
 
-   const spectrumCurveFunction  = spectrumEditorWidget.getFunction();
    const amplitudeCurveFunction = amplitudeEditorWidget.getFunction();
-   const frequencyCurveFunction = frequencyEditorWidget.getFunction();
-
-   const ampliduteEditorState = amplitudeEditorWidget.getEditorState();
-   const frequencyEditorState = frequencyEditorWidget.getEditorState();
 
    const sp = <SpecSyn.SynthesizerParms>{};
    sp.sampleRate = sampleRate;
    sp.agcRmsLevel = agcRmsLevel;
-   sp.duration = Math.min(getLastKnotX(ampliduteEditorState.knots) ?? 1, getLastKnotX(frequencyEditorState.knots) ?? 1);
-   const spectrumCurveFunction2 = (specMultiplier == 1 && specShift == 0) ? spectrumCurveFunction : (f: number) => spectrumCurveFunction(f / specMultiplier - specShift);
-   sp.spectrumCurveFunctionOdd = spectrumCurveFunction2;
-   sp.spectrumCurveFunctionEven = (evenAmplShift == 0) ? spectrumCurveFunction2 : (f: number) => spectrumCurveFunction2(f) + evenAmplShift;
+   sp.duration = getDuration();
+   const spectrumCurveFunctionAdj = getAdjustedSpectrumCurveFunction();
+   sp.spectrumCurveFunctionOdd = spectrumCurveFunctionAdj;
+   sp.spectrumCurveFunctionEven = (evenAmplShift == 0) ? spectrumCurveFunctionAdj : (f: number) => spectrumCurveFunctionAdj(f) + evenAmplShift;
    sp.amplitudeCurveFunction = amplitudeCurveFunction;
-   sp.frequencyCurveFunction = (f0Multiplier == 1) ? frequencyCurveFunction : (t: number) => frequencyCurveFunction(t) * f0Multiplier;
+   sp.frequencyCurveFunction = getAdjustedFrequencyCurveFunction();
 
    outputSignal = SpecSyn.synthesize(sp);
    outputSampleRate = sampleRate;
@@ -229,6 +355,16 @@ function startup() {
    DomUtils.addClickEventListener("saveOutputWavFileButton", saveOutputWavFileButton_click);
    DomUtils.addClickEventListener("functionCurveEditorHelpButton", functionCurveEditorHelpButton_click);
    DomUtils.addClickEventListener("functionCurveViewerHelpButton", functionCurveViewerHelpButton_click);
+   //
+   DomUtils.addChangeEventListener("specDistPaintMode", refreshSpecDist);
+   DomUtils.addChangeEventListener("f0Multiplier",      refreshSpecDistIfVisible);
+   DomUtils.addChangeEventListener("evenAmplShift",     refreshSpecDistIfVisible);
+   amplitudeEditorWidget.addEventListener("change",     refreshSpecDistIfVisible);
+   frequencyEditorWidget.addEventListener("change",     refreshSpecDistIfVisible);
+   //
+   DomUtils.addChangeEventListener("specMultiplier",    refreshSpectrumEditor);
+   DomUtils.addChangeEventListener("specShift",         refreshSpectrumEditor);
+   //
    window.onpopstate = () => Utils.catchError(loadUiAppStateFromUrl);
    loadUiAppStateFromUrl();
    refreshMainGui(); }

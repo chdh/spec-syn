@@ -1,22 +1,14 @@
-// Noise synthesizer kernel.
+// Spectral harmonic synthesizer kernel.
 
-import {convertDbToAmplitude} from "dsp-collection/utils/DspUtils";
-
-type UniFunction = (x: number) => number;
+import {UniFunction, convertDbToAmplitudeOr0} from "./Utils.ts";
 
 const PI2 = Math.PI * 2;
 
-function convertDbToAmplitudeOr0 (x: number) : number {
-   if (!Number.isFinite(x) || x < -200) {
-      return 0; }
-   const y = convertDbToAmplitude(x);
-   return Number.isFinite(y) ? y : 0; }
-
 export interface SynthesizerParms {
-   spectrumCurveFunctionOdd:           UniFunction;                            // input: frequency [Hz], output: relative harmonic overtone amplitude [dB] for odd numbered harmonics
-   spectrumCurveFunctionEven:          UniFunction;                            // input: frequency [Hz], output: relative harmonic overtone amplitude [dB] for even numbered harmonics
-   amplitudeCurveFunction:             UniFunction;                            // input: time position [s], output: overall amplitude [dB]
-   frequencyCurveFunction:             UniFunction;                            // input: time position [s], output: fundamental frequency (f0) [Hz]
+   spectrumCurveFunctionOdd:           UniFunction;                            // function input: frequency [Hz], output: relative harmonic overtone amplitude [dB] for odd numbered harmonics
+   spectrumCurveFunctionEven:          UniFunction;                            // function input: frequency [Hz], output: relative harmonic overtone amplitude [dB] for even numbered harmonics
+   amplitudeCurveFunction:             UniFunction;                            // function input: time position [s], output: overall amplitude [dB]
+   frequencyCurveFunction:             UniFunction;                            // function input: time position [s], output: fundamental frequency (f0) [Hz]
    duration:                           number;                                 // sound duration [s]
    sampleRate:                         number;                                 // sample rate [Hz]
    agcRmsLevel:                        number; }                               // output RMS level for automatic gain control (AGC)

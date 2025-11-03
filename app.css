@@ -168,12 +168,17 @@ div.functionCurveEditorFrame {
 #outputSignalViewerFrame {
    height: 150px; }
 
-div.miniButtonsBelowViewer {
+.miniControlsBelowViewer {
    margin-top: 5px;
-   display: flex; }
-
-div.miniButtonsBelowViewer div {
+   display: flex;
+   align-items: baseline; }
+.miniControlsBelowViewer,
+.miniControlsBelowViewer .miniPseudoButton {
+   font-size: 13px; }
+.miniControlsBelowViewer div {
    margin-right: 15px; }
+.miniControlsBelowViewer label {
+   margin-right: 5px; }
 
 .helpText {
    background-color: #FEFAE2;

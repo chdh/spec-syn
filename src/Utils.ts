@@ -1,4 +1,7 @@
 import * as Rfc4648 from "rfc4648";
+import {convertDbToAmplitude, convertDbToPower} from "dsp-collection/utils/DspUtils";
+
+export type UniFunction = (x: number) => number;
 
 const dummyResolvedPromise = Promise.resolve();
 const numberFormat = new Intl.NumberFormat("en-US");
@@ -78,3 +81,15 @@ export function decodeBase64UrlBuf (s: string) : Uint8Array {
       return (<any>Uint8Array).fromBase64(s, {alphabet: "base64url"}); }
     else {                                                                     // fallback for old browsers
       return Rfc4648.base64url.parse(s, {loose: true}); }}
+
+export function convertDbToAmplitudeOr0 (x: number) : number {
+   if (!Number.isFinite(x) || x < -200) {
+      return 0; }
+   const y = convertDbToAmplitude(x);
+   return Number.isFinite(y) ? y : 0; }
+
+export function convertDbToPowerOr0 (x: number) : number {
+   if (!Number.isFinite(x) || x < -200) {
+      return 0; }
+   const y = convertDbToPower(x);
+   return Number.isFinite(y) ? y : 0; }
