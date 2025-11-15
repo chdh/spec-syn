@@ -66,9 +66,6 @@ select:focus,
 .canvasFrame:focus-within {
    outline-style: solid; }
 
-.hidden {
-   display: none !important; }
-
 .parmBlock {
    margin-top: 20px;
    margin-bottom: 10px;
@@ -136,7 +133,8 @@ div.functionCurveEditorFrame {
 #frequencyEditorFrame {
    height: 200px; }
 
-#outputSignalViewerFrame {
+#outputSignalViewerFrame,
+#outputSpectrumViewerFrame {
    height: 150px; }
 
 .miniControlsBelowViewer {

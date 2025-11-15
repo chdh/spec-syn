@@ -13,20 +13,6 @@ export function getElement (elementOrId: HTMLElement | string) : HTMLElement {
 export function getInputElement (elementOrId: HTMLInputElement | string) : HTMLInputElement {
    return <HTMLInputElement>getElement(elementOrId); }
 
-// Shows or hides a DOM element.
-// If the element is an input element with an associated label element, the label element is also affected.
-export function showElement (elementOrId: HTMLElement | string, visible: boolean = true) {
-   const e = getElement(elementOrId);
-   e.classList.toggle("hidden", !visible);
-   const labels = (<HTMLInputElement>e).labels;
-   if (labels) {
-      for (const labelElement of labels) {
-         labelElement.classList.toggle("hidden", !visible); }}}
-
-export function isElementVisible (elementOrId: HTMLElement | string) : boolean {
-   const e = getElement(elementOrId);
-   return !e.classList.contains("hidden"); }
-
 export function enableElement (elementOrId: HTMLInputElement | string, enabled = true) {
    getInputElement(elementOrId).disabled = !enabled; }
 

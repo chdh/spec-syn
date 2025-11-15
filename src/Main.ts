@@ -12,6 +12,9 @@ import * as WavFileEncoder from "wav-file-encoder";
 import * as FunctionCurveViewer from "function-curve-viewer";
 import * as FunctionCurveEditor from "function-curve-editor";
 import {Point} from "function-curve-editor";
+import * as DspUtils from "dsp-collection/utils/DspUtils";
+import * as WindowFunctions from "dsp-collection/signal/WindowFunctions";
+import * as Fft from "dsp-collection/signal/Fft";
 
 const defaultMaxDisplayFreq            = 5500;
 
@@ -23,6 +26,7 @@ var spectrumEditorWidget:              FunctionCurveEditor.Widget;
 var amplitudeEditorWidget:             FunctionCurveEditor.Widget;
 var frequencyEditorWidget:             FunctionCurveEditor.Widget;
 var outputSignalViewerWidget:          FunctionCurveViewer.Widget;
+var outputSpectrumViewerWidget:        FunctionCurveViewer.Widget;
 
 // Output signal:
 var outputSignalValid:                 boolean = false;
@@ -109,6 +113,21 @@ function loadSignalViewer (widget: FunctionCurveViewer.Widget, signal: ArrayLike
       primaryZoomMode: FunctionCurveViewer.ZoomMode.x,
       xAxisUnit:       "s",
       focusShield:     true };
+   widget.setViewerState(viewerState); }
+
+function loadSpectrumViewer (widget: FunctionCurveViewer.Widget, spectrumLog: Float64Array, scalingFactor: number) {
+   const viewerFunction = FunctionCurveViewer.createViewerFunctionForArray(spectrumLog, {scalingFactor, nearestNeighbor: true});
+   const viewerState : Partial<FunctionCurveViewer.ViewerState> = {
+      viewerFunction:   viewerFunction,
+      xMin:             0,
+      xMax:             defaultMaxDisplayFreq,
+      yMin:             -100,
+      yMax:             0,
+      gridEnabled:      true,
+      primaryZoomMode:  FunctionCurveViewer.ZoomMode.x,
+      xAxisUnit:        "Hz",
+      yAxisUnit:        "dB",
+      focusShield:      true };
    widget.setViewerState(viewerState); }
 
 //--- App state ---------------------------------------------------------------
@@ -275,6 +294,15 @@ function getAdjustedSpectrumCurveFunction() {
       return spectrumCurveFunction; }
    return (f: number) => spectrumCurveFunction(f / specMultiplier - specShift); }
 
+function genOutputSpectrum() {
+   const signal = outputSignal.subarray(0, Math.floor(outputSignal.length / 2) * 2);     // make length even for speed optimization
+   const windowFunctionId = DomUtils.getValue("outSpecWindowFunction");
+   const windowedSignal = (windowFunctionId == "rect") ? signal : WindowFunctions.applyWindowById(signal, windowFunctionId);
+   const spectrum = Fft.fftRealSpectrum(windowedSignal);
+   const spectrumAmplitudes = spectrum.getAbsArray();
+   const spectrumLog = spectrumAmplitudes.map(DspUtils.convertAmplitudeToDb);
+   loadSpectrumViewer(outputSpectrumViewerWidget, spectrumLog, signal.length / outputSampleRate); }
+
 function synthesizeButton_click() {
    audioPlayer.stop();
 
@@ -298,6 +326,7 @@ function synthesizeButton_click() {
    outputSampleRate = sampleRate;
    outputSignalValid = true;
    loadSignalViewer(outputSignalViewerWidget, outputSignal, outputSampleRate);
+   genOutputSpectrum();
    refreshMainGui();
    saveUiAppStateToUrl(); }
 
@@ -330,24 +359,34 @@ function refreshMainGui() {
 function functionCurveEditorHelpButton_click() {
    const t = document.getElementById("functionCurveEditorHelpText")!;
    t.innerHTML = spectrumEditorWidget.getFormattedHelpText();
-   t.classList.toggle("hidden"); }
+   t.hidden = !t.hidden; }
 
 function functionCurveViewerHelpButton_click() {
    const t = document.getElementById("functionCurveViewerHelpText")!;
    t.innerHTML = outputSignalViewerWidget.getFormattedHelpText();
-   t.classList.toggle("hidden"); }
+   t.hidden = !t.hidden; }
+
+function polulateWindowFunctionSelect (elementId: string, defaultWindowFunctionId: string) {
+   const selectElement = <HTMLSelectElement>document.getElementById(elementId)!;
+   for (const d of WindowFunctions.windowFunctionIndex) {
+      const selected = d.id == defaultWindowFunctionId;
+      selectElement.add(new Option(d.name, d.id, selected, selected)); }}
 
 function startup() {
    audioPlayer = new InternalAudioPlayer();
    audioPlayer.addEventListener("stateChange", refreshMainGui);
-   const spectrumEditorCanvas     = <HTMLCanvasElement>document.getElementById("spectrumEditorCanvas")!;
-   const amplitudeEditorCanvas    = <HTMLCanvasElement>document.getElementById("amplitudeEditorCanvas")!;
-   const frequencyEditorCanvas    = <HTMLCanvasElement>document.getElementById("frequencyEditorCanvas")!;
-   const outputSignalViewerCanvas = <HTMLCanvasElement>document.getElementById("outputSignalViewerCanvas")!;
-   spectrumEditorWidget     = new FunctionCurveEditor.Widget(spectrumEditorCanvas);
-   amplitudeEditorWidget    = new FunctionCurveEditor.Widget(amplitudeEditorCanvas);
-   frequencyEditorWidget    = new FunctionCurveEditor.Widget(frequencyEditorCanvas);
-   outputSignalViewerWidget = new FunctionCurveViewer.Widget(outputSignalViewerCanvas);
+   const spectrumEditorCanvas       = <HTMLCanvasElement>document.getElementById("spectrumEditorCanvas")!;
+   const amplitudeEditorCanvas      = <HTMLCanvasElement>document.getElementById("amplitudeEditorCanvas")!;
+   const frequencyEditorCanvas      = <HTMLCanvasElement>document.getElementById("frequencyEditorCanvas")!;
+   const outputSignalViewerCanvas   = <HTMLCanvasElement>document.getElementById("outputSignalViewerCanvas")!;
+   const outputSpectrumViewerCanvas = <HTMLCanvasElement>document.getElementById("outputSpectrumViewerCanvas")!;
+   spectrumEditorWidget       = new FunctionCurveEditor.Widget(spectrumEditorCanvas);
+   amplitudeEditorWidget      = new FunctionCurveEditor.Widget(amplitudeEditorCanvas);
+   frequencyEditorWidget      = new FunctionCurveEditor.Widget(frequencyEditorCanvas);
+   outputSignalViewerWidget   = new FunctionCurveViewer.Widget(outputSignalViewerCanvas);
+   outputSpectrumViewerWidget = new FunctionCurveViewer.Widget(outputSpectrumViewerCanvas);
+   polulateWindowFunctionSelect("outSpecWindowFunction", "hann");
+   //
    DomUtils.addClickEventListener("synthesizeButton", synthesizeButton_click);
    DomUtils.addClickEventListener("synthesizeAndPlayButton", synthesizeAndPlayButton_click);
    DomUtils.addClickEventListener("resetButton", resetButton_click);
