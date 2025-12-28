@@ -23,7 +23,8 @@ H2 {
    font-size: 17px;
    font-weight: 600;
    margin-top: 15px;
-   margin-bottom: 15px; }
+   margin-bottom: 15px;
+   vertical-align: baseline; }
 
 a {
    color: #07C;
@@ -41,13 +42,25 @@ div.footer {
    margin-top: 15px;
    font-size: 13px; }
 
+#hideAnalysisLink {
+   margin-left: 5px;
+   font-weight: normal;
+   font-size: 15px; }
+#showAnalysisLink {
+   display: none; }
+body.analysisHidden #showAnalysisLink {
+   display: block; }
+body.analysisHidden #analysisSection {
+   display: none; }
+
 code,
 .code {
    font-family: Consolas, monospace; }
 code {
    background-color: #eff0f1; }
 
-input[type="text"], input[type="number"] {
+input[type="text"],
+input[type="number"] {
    padding: 1px 2px; }
 
 input[type="number"]::-webkit-inner-spin-button {
@@ -66,6 +79,9 @@ select:focus,
 .canvasFrame:focus-within {
    outline-style: solid; }
 
+.hidden {
+   display: none !important; }
+
 .parmBlock {
    margin-top: 20px;
    margin-bottom: 10px;
@@ -75,6 +91,10 @@ select:focus,
    align-items: baseline;
    column-gap: 20px;
    row-gap: 8px; }
+.parmBlockContinuationFirst {
+   margin-bottom: 0px; }
+.parmBlockContinuationLast {
+   margin-top: 8px; }
 
 .parmField {
    display: flex;
@@ -124,7 +144,7 @@ div.functionCurveViewerFrame,
 div.functionCurveEditorFrame {
    margin-top: 15px;
    border: 1px solid black;
-   max-width: 1280px;
+   width: min(1280px, 100%);
    height: 250px;
    resize: both;
    overflow: hidden; }
@@ -133,6 +153,7 @@ div.functionCurveEditorFrame {
 #frequencyEditorFrame {
    height: 200px; }
 
+#inputSignalViewerFrame,
 #outputSignalViewerFrame,
 #outputSpectrumViewerFrame {
    height: 150px; }
@@ -140,14 +161,19 @@ div.functionCurveEditorFrame {
 .miniControlsBelowViewer {
    margin-top: 5px;
    display: flex;
-   align-items: baseline; }
+   align-items: baseline;
+   column-gap: 15px; }
 .miniControlsBelowViewer,
 .miniControlsBelowViewer .miniPseudoButton {
    font-size: 13px; }
-.miniControlsBelowViewer div {
-   margin-right: 15px; }
 .miniControlsBelowViewer label {
    margin-right: 5px; }
+/* .miniControlsField {
+   display: flex;
+   align-items: baseline; } */
+.miniControlsField input[type="checkbox"] {
+   margin: 0;
+   vertical-align: middle; }
 
 .helpText {
    background-color: #FEFAE2;

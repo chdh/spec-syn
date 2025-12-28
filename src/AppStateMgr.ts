@@ -1,6 +1,8 @@
 // Application state management
 
 import * as Utils from "./Utils.ts";
+import {UniFunction} from "./Utils.ts";
+
 import {Point} from "function-curve-editor";
 import * as Fflate from "fflate";
 import Varint from "varint";
@@ -192,7 +194,8 @@ export interface AppState {
    evenAmplShift:            number;
    spectrumCurveKnots:       Point[];
    amplitudeCurveKnots:      Point[];
-   frequencyCurveKnots:      Point[]; }
+   frequencyCurveKnots:      Point[];
+   origSpecCurveFunction?:   UniFunction; }                // only used internally to visualize the original smoothed spectrum curve from the analysis
 
 export function encodeAppStateUrlParms (appState: AppState) : string {
    const usp = new URLSearchParams();

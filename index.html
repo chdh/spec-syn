@@ -8,9 +8,110 @@
  <script src="app.js"></script>
  <title>SpecSyn - Spectral Harmonic Synthesizer</title>
 </head>
-<body>
+<body class="analysisHidden">
 
 <h1>SpecSyn - Spectral Harmonic Synthesizer</h1>
+
+<div id="showAnalysisLink" class="pseudoButton">Analysis</div>
+
+<div id="analysisSection">
+ <h2>Analysis <span id="hideAnalysisLink" class="pseudoButton">Hide</span></h2>
+
+ <div id="inputSignalViewerFrame" class="functionCurveViewerFrame canvasFrame">
+  <canvas id="inputSignalViewerCanvas" class="functionCurveViewer" tabindex="-1">
+  </canvas>
+ </div>
+
+ <div class="miniControlsBelowViewer">
+  <div id="functionCurveViewerHelpButton1" class="miniPseudoButton">Help</div>
+ </div>
+ <div id="functionCurveViewerHelpText1" class="helpText hidden"></div>
+
+ <div class="actionButtons">
+  <button id="loadLocalAudioFileButton">Load audio file</button>
+  <button id="playInputButton">Play</button>
+  <button id="saveInputWavFileButton">Save WAV file</button>
+  <div id="inputSignalSelectionInfo"></div>
+  <div id="inputSignalSampleRate"></div>
+ </div>
+
+ <div class="parmBlock">
+  <div class="parmField">
+   <label class="w130" for="f0Reference" title="Reference value for the fundamental frequency. Can be estimated. Used for filtering the spectrum and as a reference value for the frequency tracking.">F0 reference [Hz]:</label>
+   <input class="w110" id="f0Reference" type="number" step="any">
+  </div>
+  <div class="parmField">
+   <span id="recalculateF0ReferenceButton" class="pseudoButton">Recalculate</span>
+  </div>
+ </div>
+
+ <h2><input id="analSpecEnabled" type="checkbox" checked>Spectrum analysis</h2>
+
+ <div class="parmBlock parmBlockContinuationFirst">
+  <div class="parmField">
+   <label class="w130" for="analSpecMethod" title="Method for creating the smoothed spectrum curve.">Method:</label>
+   <select class="w110" id="analSpecMethod">
+    <option value="smaPwrLog2">Triple SMA (1x power + 2x log)</option>
+    <option value="firLpPwrLog" selected>Dual FIR LP filter (1x power + 1x log)</option>
+   </select>
+  </div>
+  <div class="parmField">
+   <label class="w130" for="analSpecWidth1" title="Filter window width for the first FIR LP filter, relative to the F0 reference value.">Filter width 1 [F0]:</label>
+   <input class="w110" id="analSpecWidth1" type="number" step="any" required required value="1.25">
+  </div>
+  <div class="parmField" id="analSpecFunc1Field">
+   <label class="w130" for="analSpecFunc1" title="Filter window function used for the first FIR LP filter.">Filter function 1:</label>
+   <select class="w110" id="analSpecFunc1">
+   </select>
+  </div>
+  <div class="parmField" id="analSpecWidth2Field">
+   <label class="w130" for="analSpecWidth2" title="Filter window width for the second FIR LP filter, relative to the F0 reference value.">Filter width 2 [F0]:</label>
+   <input class="w110" id="analSpecWidth2" type="number" step="any" required required value="0.75">
+  </div>
+  <div class="parmField" id="analSpecFunc2Field">
+   <label class="w130" for="analSpecFunc2" title="Filter window function used for the second FIR LP filter.">Filter function 2:</label>
+   <select class="w110" id="analSpecFunc2">
+   </select>
+  </div>
+ </div>
+ <div class="parmBlock parmBlockContinuationLast">
+  <div class="parmField">
+   <label class="w130" for="analSpecMaxFreq" title="Maximum frequency for the spectrum calculation in Hz.">Max frequency [Hz]:</label>
+   <input class="w110" id="analSpecMaxFreq" type="text" required value="5500">
+  </div>
+  <div class="parmField">
+   <label class="w130" for="analSpecStepWidth" title="Step width for generating the knots for the editable spectrum function curve.">Step width [Hz]:</label>
+   <input class="w110" id="analSpecStepWidth" type="number" step="any" required value="100">
+  </div>
+  <div class="parmField">
+   <label class="w130" for="analSpecWindowFunc" title="Window function to apply before the FFT.">FFT window func.:</label>
+   <select class="w110" id="analSpecWindowFunc">
+   </select>
+  </div>
+
+ </div>
+
+ <h2><input id="analAmplEnabled" type="checkbox" checked>Amplitude curve analysis</h2>
+
+ <div class="parmBlock">
+  <div class="parmField">
+   TODO
+  </div>
+ </div>
+
+ <h2><input id="analFreqEnabled" type="checkbox" checked>Frequency curve analysis</h2>
+
+ <div class="parmBlock">
+  <div class="parmField">
+   TODO
+  </div>
+ </div>
+
+ <div class="actionButtons">
+  <button id="analyzeButton">Analyze</button>
+ </div>
+
+</div>
 
 <h2>Spectrum (amplitude over frequency)</h2>
 
@@ -20,24 +121,30 @@
 </div>
 <div class="miniControlsBelowViewer">
  <div id="functionCurveEditorHelpButton" class="miniPseudoButton">Help</div>
- <label for="specDistPaintMode">Harmonics:</label>
- <select id="specDistPaintMode">
-  <option value="0">none</option>
-  <option value="1">background</option>
-  <option value="2">bars</option>
-  <option value="3">line</option>
- </select>
+ <div class="miniControlsField">
+  <label for="specDistPaintMode" title="Visualization of the spectral broadening of the harmonics.">Harmonic spread:</label>
+  <select id="specDistPaintMode">
+   <option value="0">none</option>
+   <option value="1">background</option>
+   <option value="2">bars</option>
+   <option value="3">line</option>
+  </select>
+ </div>
+ <div id="showOriginalSpecCurveField" class="miniControlsField hidden">
+  <label for="showOriginalSpecCurve" title="Show the original smoothed spectrum curve from the analysis.">Analysis curve:</label>
+  <input id="showOriginalSpecCurve" type="checkbox">
+ </div>
 </div>
-<div id="functionCurveEditorHelpText" class="helpText" hidden></div>
+<div id="functionCurveEditorHelpText" class="helpText hidden"></div>
 
-<h2>Amplitude (overall amplitude over time)</h2>
+<h2>Amplitude curve (overall amplitude over time)</h2>
 
 <div id="amplitudeEditorFrame" class="functionCurveEditorFrame canvasFrame">
  <canvas id="amplitudeEditorCanvas" class="functionCurveEditor" tabindex="-1">
  </canvas>
 </div>
 
-<h2>Frequency (fundamental frequency over time)</h2>
+<h2>Frequency curve (fundamental frequency over time)</h2>
 
 <div id="frequencyEditorFrame" class="functionCurveEditorFrame canvasFrame">
  <canvas id="frequencyEditorCanvas" class="functionCurveEditor" tabindex="-1">
@@ -70,7 +177,7 @@
   <input class="w110" id="agcRmsLevel" type="number" step="any" min="0" required>
  </div>
  <div class="parmField">
-  <label class="w130" for="outSpecWindowFunction" title="Window function for generating output spectrum.">Window function:</label>
+  <label class="w130" for="outSpecWindowFunction" title="Window function for generating the output spectrum.">Window function:</label>
   <select class="w110" id="outSpecWindowFunction">
   </select>
  </div>
@@ -89,9 +196,9 @@
  </canvas>
 </div>
 <div class="miniControlsBelowViewer">
- <div id="functionCurveViewerHelpButton" class="miniPseudoButton">Help</div>
+ <div id="functionCurveViewerHelpButton2" class="miniPseudoButton">Help</div>
 </div>
-<div id="functionCurveViewerHelpText" class="helpText" hidden></div>
+<div id="functionCurveViewerHelpText2" class="helpText hidden"></div>
 
 <h2>Output spectrum</h2>
 

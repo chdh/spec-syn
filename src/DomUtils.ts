@@ -13,6 +13,15 @@ export function getElement (elementOrId: HTMLElement | string) : HTMLElement {
 export function getInputElement (elementOrId: HTMLInputElement | string) : HTMLInputElement {
    return <HTMLInputElement>getElement(elementOrId); }
 
+// Shows or hides a DOM element.
+export function showElement (elementOrId: HTMLElement | string, visible = true) {
+   const e = getElement(elementOrId);
+   e.classList.toggle("hidden", !visible); }
+
+export function isElementVisible (elementOrId: HTMLElement | string) : boolean {
+   const e = getElement(elementOrId);
+   return !e.classList.contains("hidden"); }
+
 export function enableElement (elementOrId: HTMLInputElement | string, enabled = true) {
    getInputElement(elementOrId).disabled = !enabled; }
 

@@ -13,6 +13,7 @@
       "function-curve-viewer": "^1.0.26",
       "rfc4648": "^1.5.4",
       "varint": "^6.0.0",
+      "wav-file-decoder": "^1.0.3",
       "wav-file-encoder": "^1.0.2"
    },
    "devDependencies": {

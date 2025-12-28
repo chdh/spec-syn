@@ -34,6 +34,28 @@ async function catchErrorAsync (f: Function, ...args: any[]) {
       console.log(error);
       alert("Error: " + error); }}
 
+export function openFileOpenDialog (callback: (file: File) => void) {
+   if ((<any>window).showOpenFilePicker) {
+      openFileOpenDialog_new().then(callback, (e) => console.log(e)); }
+    else {
+      openFileOpenDialog_old(callback); }}
+
+async function openFileOpenDialog_new() : Promise<File> {
+   const pickerOpts = {};
+   const fileHandle: FileSystemFileHandle = (await (<any>window).showOpenFilePicker(pickerOpts))[0];
+   const file = await fileHandle.getFile();
+   return file; }
+
+function openFileOpenDialog_old (callback: (file: File) => void) {
+   const element: HTMLInputElement = document.createElement("input");
+   element.type = "file";
+   element.addEventListener("change", () => {
+      if (element.files?.length == 1) {
+         callback(element.files[0]); }});
+   const clickEvent = new MouseEvent("click");
+   element.dispatchEvent(clickEvent);
+   (<any>document).dummyFileOpenElementHolder = element; } // to prevent garbage collection
+
 export function openSaveAsDialog (data: ArrayBuffer, fileName: string, mimeType: string, fileNameExtension: string, fileTypeDescription: string) {
    if ((<any>window).showSaveFilePicker) {
       catchError(openSaveAsDialog_new, data, fileName, mimeType, fileNameExtension, fileTypeDescription); }
@@ -69,6 +91,10 @@ function openSaveAsDialog_old (data: ArrayBuffer, fileName: string, mimeType: st
    element.dispatchEvent(clickEvent);
    setTimeout(() => URL.revokeObjectURL(url), 60000);
    (<any>document).dummySaveAsElementHolder = element; }                       // to prevent garbage collection
+
+export function removeFileNameExtension (s: string) : string {
+   const p = s.lastIndexOf(".");
+   return (p > 0) ? s.substring(0, p) : s; }
 
 export function encodeBase64UrlBuf (buf: Uint8Array) : string {
    if ((<any>buf).toBase64) {

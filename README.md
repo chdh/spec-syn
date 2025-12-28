@@ -1,7 +1,13 @@
 # SpecSyn - Spectral Harmonic Synthesizer
 
-A browser-based web application for generating short harmonic sound samples.
-This application has been specifically designed for experimenting with new methods of vowel synthesis.
-It is also used to learn about vowels using the analysis-by-synthesis principle.
+SpecSyn is a browser-based web application for analyzing and re-synthesizing short harmonic sound samples.
+It is specifically designed for experimenting with new methods of vowel analysis and synthesis.
+It can used to learn about the characteristics of vowels by using the analysis-by-synthesis principle.
+
+The sound re-synthesis is based on the following three function curves:
+
+- Overall spectrum (amplitude over frequency)
+- Amplitude curve (overall signal amplitude over time)
+- Frequencyy curve (fundamental frequency over time)
 
 **Online demo**: [www.source-code.biz/specSyn](https://www.source-code.biz/specSyn)
