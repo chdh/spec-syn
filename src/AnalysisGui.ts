@@ -11,7 +11,10 @@ import {catchError, formatNumber} from "./Utils.ts";
 import * as DomUtils from "./DomUtils.ts";
 import * as AudioUtils from "./AudioUtils.ts";
 import {audioPlayer} from "./Main.ts";
+import {AppStateUpdate} from "./AppStateMgr.ts";
 import * as AnalysisSpec from "./AnalysisSpec.ts";
+import * as AnalysisAmpl from "./AnalysisAmpl.ts";
+import * as AnalysisFreq from "./AnalysisFreq.ts";
 import * as SynthesisGui from "./SynthesisGui.ts";
 
 // GUI components:
@@ -115,12 +118,12 @@ function getInputSignalSelection() {
 function isInputSignalWhole() : boolean {
    return inputSignalStart == 0 && inputSignalEnd == inputSignal.length; }
 
-function isInputSignalAvailable() : boolean {
+export function isInputSignalAvailable() : boolean {
    return !!inputSignalValid && inputSignalEnd > inputSignalStart; }
 
 //--- Analysis -----------------------------------------------------------------
 
-function analyzeSpectrum() {
+function analyzeSpectrum (appState: AppStateUpdate) {
    const parms = <AnalysisSpec.GuiParms>{};
    parms.f0Reference        = DomUtils.getValueNum("f0Reference");
    parms.analSpecMethod     = DomUtils.getValue("analSpecMethod");
@@ -132,13 +135,52 @@ function analyzeSpectrum() {
    parms.analSpecStepWidth  = DomUtils.getValueNum("analSpecStepWidth");
    parms.analSpecWindowFunc = DomUtils.getValue("analSpecWindowFunc");
    const {spectrumCurveKnots, origSpecCurveFunction} = AnalysisSpec.analyzeSpectrum(getInputSignalSelection(), inputSampleRate, parms);
-   SynthesisGui.updateAppStateFromAnalysis({spectrumCurveKnots, origSpecCurveFunction}); }
+   appState.spectrumCurveKnots = spectrumCurveKnots;
+   appState.origSpecCurveFunction = origSpecCurveFunction; }
 
-function analyzeButton_click() {
+function analyzeAmplitudeCurve (appState: AppStateUpdate) {
+   const parms = <AnalysisAmpl.GuiParms>{};
+   parms.analAmplStepWidth = DomUtils.getValueNum("analAmplStepWidth") / 1000; // convert [ms] to [s]
+   appState.amplitudeCurveKnots = AnalysisAmpl.analyzeAmplitudeCurve(getInputSignalSelection(), inputSampleRate, parms); }
+
+function analyzeFrequencyCurve (appState: AppStateUpdate) {
+   const parms = <AnalysisFreq.GuiParms>{};
+   parms.analFreqStepWidth = DomUtils.getValueNum("analFreqStepWidth") / 1000; // convert [ms] to [s]
+   appState.frequencyCurveKnots = AnalysisFreq.analyzeFrequencyCurve(getInputSignalSelection(), inputSampleRate, parms); }
+
+export function analyze() {
+   const appState: AppStateUpdate = {};
    if (DomUtils.getChecked("analSpecEnabled")) {
-      analyzeSpectrum(); }
-   // ...
-   }
+      analyzeSpectrum(appState); }
+   if (DomUtils.getChecked("analAmplEnabled")) {
+      analyzeAmplitudeCurve(appState); }
+   if (DomUtils.getChecked("analFreqEnabled")) {
+      analyzeFrequencyCurve(appState); }
+   SynthesisGui.updateAppStateFromAnalysis(appState); }
+
+async function analyzeButton_click() {
+   audioPlayer.stop();
+   try {
+      await Utils.showProgressInfo();
+      analyze(); }
+    finally {
+      DialogManager.closeProgressInfo(); }}
+
+async function analAndSynthButton_click() {
+   audioPlayer.stop();
+   try {
+      await Utils.showProgressInfo();
+      analyze();
+      SynthesisGui.synthesize(); }
+    finally {
+      DialogManager.closeProgressInfo(); }}
+
+async function analSynthPlayButton_click() {
+   if (audioPlayer.isPlaying()) {
+      audioPlayer.stop();
+      return; }
+   await analAndSynthButton_click();
+   await SynthesisGui.playOutputSignal(); }
 
 //------------------------------------------------------------------------------
 
@@ -161,14 +203,25 @@ function refreshGuiDependencies_analSpecMethod() {
    DomUtils.showElement("analSpecWidth2Field", isDualFirLp);
    DomUtils.showElement("analSpecFunc2Field", isDualFirLp); }
 
+var playInputButtonText:         string|undefined = undefined;
+var analSynthPlayButtonTextText: string|undefined = undefined;
+
 function refreshMainGui() {
-   const playButtonText = audioPlayer.isPlaying() ? "Stop" : "Play";
+   playInputButtonText ??= DomUtils.getText("playInputButton");
+   analSynthPlayButtonTextText ??= DomUtils.getText("analSynthPlayButton");
+   const newPlayInputButtonText = audioPlayer.isPlaying() ? "Stop" : playInputButtonText;
+   const newAnalSynthPlayButtonText = audioPlayer.isPlaying() ? "Stop" : analSynthPlayButtonTextText;
+   //
    inputSignalViewerWidget.disabled = !inputSignalValid;
    DomUtils.enableElement("playInputButton", isInputSignalAvailable());
-   DomUtils.setText("playInputButton", playButtonText);
+   DomUtils.setText("playInputButton", newPlayInputButtonText);
    DomUtils.enableElement("saveInputWavFileButton", isInputSignalAvailable());
-   const analysisEnabled = DomUtils.getChecked("analSpecEnabled") || DomUtils.getChecked("analAmplEnabled") || DomUtils.getChecked("analFreqEnabled");
-   DomUtils.enableElement("analyzeButton", isInputSignalAvailable() && analysisEnabled);
+   const analysisSubEnabled = DomUtils.getChecked("analSpecEnabled") || DomUtils.getChecked("analAmplEnabled") || DomUtils.getChecked("analFreqEnabled");
+   const analysisEnabled = isInputSignalAvailable() && analysisSubEnabled;
+   DomUtils.enableElement("analyzeButton", analysisEnabled);
+   DomUtils.enableElement("analAndSynthButton", analysisEnabled);
+   DomUtils.enableElement("analSynthPlayButton", analysisEnabled);
+   DomUtils.setText("analSynthPlayButton", newAnalSynthPlayButtonText);
    refreshGuiDependencies_analSpecMethod(); }
 
 async function playInputButton_click() {
@@ -191,14 +244,16 @@ function functionCurveViewerHelpButton1_click() {
    t.innerHTML = inputSignalViewerWidget.getFormattedHelpText();
    t.classList.toggle("hidden"); }
 
-async function processUrlParameters() {
+export async function startup() {
    const parmsString = window.location.hash.substring(1);
    const usp = new URLSearchParams(parmsString);
    const audioFileUrl = usp.get("file");
    const f0 = Number(usp.get("f0") ?? "0");
    if (audioFileUrl) {
+      await Utils.showProgressInfo();
       showAnalysisSection();
-      await loadAudioFileFromUrl(audioFileUrl, f0); }}
+      await loadAudioFileFromUrl(audioFileUrl, f0); }
+   refreshMainGui(); }
 
 function populateWindowFunctionSelect (elementId: string, defaultWindowFunctionId: string, addNone = false) {
    const selectElement = <HTMLSelectElement>document.getElementById(elementId)!;
@@ -208,7 +263,8 @@ function populateWindowFunctionSelect (elementId: string, defaultWindowFunctionI
    if (addNone) {
       selectElement.add(new Option("none", "none")); }}
 
-export async function init() {
+export function init() {
+   audioPlayer.addEventListener("stateChange", refreshMainGui);
    const inputSignalViewerCanvas = <HTMLCanvasElement>document.getElementById("inputSignalViewerCanvas")!;
    inputSignalViewerWidget = new FunctionCurveViewer.Widget(inputSignalViewerCanvas);
    populateWindowFunctionSelect("analSpecWindowFunc", "hann");
@@ -223,11 +279,12 @@ export async function init() {
    DomUtils.addClickEventListener("saveInputWavFileButton", saveInputWavFileButton_click);
    DomUtils.addClickEventListener("recalculateF0ReferenceButton", recalculateF0ReferenceButton_click);
    DomUtils.addClickEventListener("analyzeButton", analyzeButton_click);
+   DomUtils.addClickEventListener("analAndSynthButton", analAndSynthButton_click);
+   DomUtils.addClickEventListener("analSynthPlayButton", analSynthPlayButton_click);
    inputSignalViewerWidget.addEventListener("segmentchange", () => catchError(inputSignalViewer_segmentChange));
    DomUtils.addChangeEventListener("analSpecEnabled", refreshMainGui);
    DomUtils.addChangeEventListener("analAmplEnabled", refreshMainGui);
    DomUtils.addChangeEventListener("analFreqEnabled", refreshMainGui);
    DomUtils.addChangeEventListener("analSpecMethod", refreshMainGui);
    //
-   await processUrlParameters();
    refreshMainGui(); }

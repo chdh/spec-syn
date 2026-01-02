@@ -11,6 +11,7 @@
       "fflate": "^0.8.2",
       "function-curve-editor": "^1.0.19",
       "function-curve-viewer": "^1.0.26",
+      "harm-syn": "^1.0.1",
       "rfc4648": "^1.5.4",
       "varint": "^6.0.0",
       "wav-file-decoder": "^1.0.3",

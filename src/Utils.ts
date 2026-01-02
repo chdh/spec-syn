@@ -1,5 +1,6 @@
 import * as Rfc4648 from "rfc4648";
 import {convertDbToAmplitude, convertDbToPower} from "dsp-collection/utils/DspUtils";
+import * as DialogManager from "dialog-manager";
 
 export type UniFunction = (x: number) => number;
 
@@ -8,6 +9,18 @@ const numberFormat = new Intl.NumberFormat("en-US");
 
 export function nextTick (callback: () => void) {
    void dummyResolvedPromise.then(callback); }
+
+function waitForNextAnimationFrame() : Promise<void> {
+   return new Promise<void>((resolve: Function) => {
+      window.requestAnimationFrame(() => resolve()); }); }
+
+async function waitForDisplayUpdate() : Promise<void> {
+   await waitForNextAnimationFrame();
+   await waitForNextAnimationFrame(); }
+
+export async function showProgressInfo() {
+   DialogManager.showProgressInfo({msgHtml: `<div class="progressInfoMsg">Processing...</div>`});
+   await waitForDisplayUpdate(); }
 
 export function formatNumber (n: number | undefined, includeSign: boolean = false) : string {
    if (n === undefined || !isFinite(n)) {

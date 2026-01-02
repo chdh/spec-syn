@@ -1,14 +1,5 @@
 // Synthesis GUI.
 
-import * as Utils from "./Utils.ts";
-import {catchError, UniFunction} from "./Utils.ts";
-import * as DomUtils from "./DomUtils.ts";
-import * as SpecSyn from "./SpecSyn.ts";
-import * as SpecSynDist from "./SpecSynDist.ts";
-import * as AppStateMgr from "./AppStateMgr.ts";
-import {AppState} from "./AppStateMgr.ts";
-import {audioPlayer} from "./Main.ts";
-
 import * as WavFileEncoder from "wav-file-encoder";
 import * as FunctionCurveViewer from "function-curve-viewer";
 import * as FunctionCurveEditor from "function-curve-editor";
@@ -16,6 +7,16 @@ import {Point} from "function-curve-editor";
 import * as DspUtils from "dsp-collection/utils/DspUtils";
 import * as WindowFunctions from "dsp-collection/signal/WindowFunctions";
 import * as Fft from "dsp-collection/signal/Fft";
+
+import * as Utils from "./Utils.ts";
+import {catchError, UniFunction} from "./Utils.ts";
+import * as DomUtils from "./DomUtils.ts";
+import * as SpecSyn from "./SpecSyn.ts";
+import * as SpecSynDist from "./SpecSynDist.ts";
+import * as AppStateMgr from "./AppStateMgr.ts";
+import {AppState, AppStateUpdate} from "./AppStateMgr.ts";
+import * as Main from "./Main.ts";
+import {audioPlayer} from "./Main.ts";
 
 const defaultMaxDisplayFreq            = 5500;
 
@@ -158,6 +159,11 @@ function getAppStateFromUi() {
 function getLastKnotX (knots: Point[]) : number | undefined {
    return knots.length ? knots[knots.length - 1].x : undefined; }
 
+function genTMax (knots: Point[]) : number {
+   const defaultTMax = 3;                                                      // 3 seconds
+   const t = getLastKnotX(knots) ?? defaultTMax;
+   return Math.round((t + 0.099) / 0.1) * 0.1; }
+
 function setAppStateToUi (appState: AppState) {
    DomUtils.setValueNum("sampleRate",     appState.sampleRate);
    DomUtils.setValueNum("agcRmsLevel",    appState.agcRmsLevel);
@@ -165,15 +171,19 @@ function setAppStateToUi (appState: AppState) {
    DomUtils.setValueNum("specMultiplier", appState.specMultiplier);
    DomUtils.setValueNum("specShift",      appState.specShift);
    DomUtils.setValueNum("evenAmplShift",  appState.evenAmplShift);
-   const tMax = Math.min(getLastKnotX(appState.amplitudeCurveKnots) ?? 5, getLastKnotX(appState.frequencyCurveKnots) ?? 5);
+   const tMax = Math.max(genTMax(appState.amplitudeCurveKnots), genTMax(appState.frequencyCurveKnots));
    loadSpectrumCurveEditor(appState.spectrumCurveKnots);
    loadAmplitudeCurveEditor(appState.amplitudeCurveKnots, tMax);
    loadFrequencyCurveEditor(appState.frequencyCurveKnots, tMax);
    refreshSpecDistIfVisible(); }
 
-function loadUiAppStateFromUrl() {
+function loadUiAppStateFromUrl (suppressCurves = false) {
    const urlParmsString = window.location.hash.substring(1);
    const appState = AppStateMgr.decodeAppStateUrlParms(urlParmsString);
+   if (suppressCurves) {
+      appState.spectrumCurveKnots = [];
+      appState.amplitudeCurveKnots = [];
+      appState.frequencyCurveKnots = []; }
    setAppStateToUi(appState); }
 
 function saveUiAppStateToUrl() {
@@ -181,17 +191,26 @@ function saveUiAppStateToUrl() {
    const urlParmsString = AppStateMgr.encodeAppStateUrlParms(appState);
    if (urlParmsString == window.location.hash.substring(1)) {
       return; }
-   window.history.pushState(null, "", "#" + urlParmsString); }
+   if (Main.startupCompleted) {
+      window.history.pushState(null, "", "#" + urlParmsString); }
+    else {
+      window.history.replaceState(null, "", "#" + urlParmsString); }}
 
 function resetButton_click() {
    const appState = AppStateMgr.decodeAppStateUrlParms(originalUrlParmsString);
    setAppStateToUi(appState); }
 
-export function updateAppStateFromAnalysis (appState: Partial<AppState>) {
+export function updateAppStateFromAnalysis (appState: AppStateUpdate) {
+   const amplKnots = appState.amplitudeCurveKnots ?? amplitudeEditorWidget.getEditorState().knots;
+   const freqKnots = appState.frequencyCurveKnots ?? frequencyEditorWidget.getEditorState().knots;
+   const tMax = Math.max(genTMax(amplKnots), genTMax(freqKnots));
    if (appState.spectrumCurveKnots) {
       loadSpectrumCurveEditor(appState.spectrumCurveKnots, appState.origSpecCurveFunction); }
-   //...
-   }
+   if (appState.amplitudeCurveKnots) {
+      loadAmplitudeCurveEditor(appState.amplitudeCurveKnots, tMax); }
+   if (appState.frequencyCurveKnots) {
+      loadFrequencyCurveEditor(appState.frequencyCurveKnots, tMax); }
+   refreshSpecDistIfVisible(); }
 
 //--- Spectral distribution ---------------------------------------------------
 
@@ -319,9 +338,7 @@ function genOutputSpectrum() {
    const spectrumLog = spectrumAmplitudes.map(DspUtils.convertAmplitudeToDb);
    loadSpectrumViewer(outputSpectrumViewerWidget, spectrumLog, signal.length / outputSampleRate); }
 
-function synthesizeButton_click() {
-   audioPlayer.stop();
-
+export function synthesize() {
    const sampleRate     = DomUtils.getValueNum("sampleRate");
    const agcRmsLevel    = DomUtils.getValueNum("agcRmsLevel");
    const evenAmplShift  = DomUtils.getValueNum("evenAmplShift");
@@ -346,18 +363,25 @@ function synthesizeButton_click() {
    refreshMainGui();
    saveUiAppStateToUrl(); }
 
+function synthesizeButton_click() {
+   audioPlayer.stop();
+   synthesize(); }
+
 async function synthesizeAndPlayButton_click() {
    if (audioPlayer.isPlaying()) {
       audioPlayer.stop();
       return; }
-   synthesizeButton_click();
-   await playOutputButton_click(); }
+   synthesize();
+   await playOutputSignal(); }
+
+export async function playOutputSignal() {
+   await audioPlayer.playSamples(outputSignal, outputSampleRate); }
 
 async function playOutputButton_click() {
    if (audioPlayer.isPlaying()) {
       audioPlayer.stop();
       return; }
-   await audioPlayer.playSamples(outputSignal, outputSampleRate); }
+   await playOutputSignal(); }
 
 function saveOutputWavFileButton_click() {
    audioPlayer.stop();
@@ -387,6 +411,10 @@ function polulateWindowFunctionSelect (elementId: string, defaultWindowFunctionI
    for (const d of WindowFunctions.windowFunctionIndex) {
       const selected = d.id == defaultWindowFunctionId;
       selectElement.add(new Option(d.name, d.id, selected, selected)); }}
+
+export function startup (suppressDefaultCurves: boolean) {
+   loadUiAppStateFromUrl(suppressDefaultCurves);
+   refreshMainGui(); }
 
 export function init() {
    audioPlayer.addEventListener("stateChange", refreshMainGui);
@@ -421,5 +449,4 @@ export function init() {
    DomUtils.addChangeEventListener("specShift", refreshSpectrumEditor);
    //
    window.onpopstate = () => catchError(loadUiAppStateFromUrl);
-   loadUiAppStateFromUrl();
    refreshMainGui(); }

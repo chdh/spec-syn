@@ -49,6 +49,9 @@ export function getValue (elementOrId: HTMLInputElement | string) : string {
 export function setValue (elementOrId: HTMLInputElement | string, newValue: string) {
    getInputElement(elementOrId).value = newValue; }
 
+export function getText (elementOrId: HTMLElement | string) : string {
+   return getElement(elementOrId).textContent; }
+
 export function setText (elementOrId: HTMLElement | string, text: string) {
    getElement(elementOrId).textContent = text; }
 

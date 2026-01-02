@@ -80,7 +80,7 @@
    <input class="w110" id="analSpecMaxFreq" type="text" required value="5500">
   </div>
   <div class="parmField">
-   <label class="w130" for="analSpecStepWidth" title="Step width for generating the knots for the editable spectrum function curve.">Step width [Hz]:</label>
+   <label class="w130" for="analSpecStepWidth" title="Step width in Hz for generating the knots for the editable spectrum function curve.">Step width [Hz]:</label>
    <input class="w110" id="analSpecStepWidth" type="number" step="any" required value="100">
   </div>
   <div class="parmField">
@@ -95,7 +95,8 @@
 
  <div class="parmBlock">
   <div class="parmField">
-   TODO
+   <label class="w130" for="analAmplStepWidth" title="Step width in ms for generating the knots for the editable amplitude function curve.">Step width [ms]:</label>
+   <input class="w110" id="analAmplStepWidth" type="number" step="any" required value="50">
   </div>
  </div>
 
@@ -103,12 +104,15 @@
 
  <div class="parmBlock">
   <div class="parmField">
-   TODO
+   <label class="w130" for="analFreqStepWidth" title="Step width in ms for generating the knots for the editable fundamental frequency function curve.">Step width [ms]:</label>
+   <input class="w110" id="analFreqStepWidth" type="number" required min="1" value="50">
   </div>
  </div>
 
  <div class="actionButtons">
   <button id="analyzeButton">Analyze</button>
+  <button id="analAndSynthButton">Analyze + Synth</button>
+  <button id="analSynthPlayButton">Anal+Syn+Play</button>
  </div>
 
 </div>

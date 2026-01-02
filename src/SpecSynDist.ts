@@ -1,8 +1,9 @@
 // Computes a spectral distribution for the spectral harmonic synthesizer.
 
-import {UniFunction, convertDbToPowerOr0} from "./Utils.ts";
 import {convertPowerToDb} from "dsp-collection/utils/DspUtils";
 import * as ArrayUtils from "dsp-collection/utils/ArrayUtils";
+
+import {UniFunction, convertDbToPowerOr0} from "./Utils.ts";
 
 export interface DistribParms {
    amplitudeCurveFunction:             UniFunction;                            // function input: time position [s], output: overall amplitude [dB]

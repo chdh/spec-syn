@@ -17,7 +17,7 @@ export interface GuiParms {                                // GUI parameters
    analSpecWidth2:           number;                       // filter window width for the second FIR LP filter, relative to f0Reference
    analSpecFunc2:            string;                       // filter window function used for the second FIR LP filter
    analSpecMaxFreq:          number;                       // maximum frequency for the spectrum calculation in Hz
-   analSpecStepWidth:        number;                       // step width for generating the knots for the editable spectrum function curve
+   analSpecStepWidth:        number;                       // step width [Hz] for generating the knots for the editable spectrum function curve
    analSpecWindowFunc:       string; }                     // window function to apply before the FFT
 
 function filterArray (signal: Float64Array, filterSpec: FirFilterWin.FilterSpec) : Float64Array {
