@@ -154,6 +154,7 @@ function getAppStateFromUi() {
    appState.spectrumCurveKnots = spectrumEditorWidget.getEditorState().knots;
    appState.amplitudeCurveKnots = amplitudeEditorWidget.getEditorState().knots;
    appState.frequencyCurveKnots = frequencyEditorWidget.getEditorState().knots;
+   appState.reference = DomUtils.getValue("reference");
    return appState; }
 
 function getLastKnotX (knots: Point[]) : number | undefined {
@@ -175,6 +176,7 @@ function setAppStateToUi (appState: AppState) {
    loadSpectrumCurveEditor(appState.spectrumCurveKnots);
    loadAmplitudeCurveEditor(appState.amplitudeCurveKnots, tMax);
    loadFrequencyCurveEditor(appState.frequencyCurveKnots, tMax);
+   DomUtils.setValue("reference", appState.reference);
    refreshSpecDistIfVisible(); }
 
 function loadUiAppStateFromUrl (suppressCurves = false) {

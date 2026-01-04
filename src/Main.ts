@@ -6,16 +6,20 @@ import {catchError} from "./Utils.ts";
 import * as AnalysisGui from "./AnalysisGui.ts";
 import * as SynthesisGui from "./SynthesisGui.ts";
 import InternalAudioPlayer from "./InternalAudioPlayer.js";
+import * as DomUtils from "./DomUtils.ts";
 import * as Utils from "./Utils.ts";
 
 export var audioPlayer:      InternalAudioPlayer;
 export var startupCompleted: boolean = false;
 
-async function performInitialProcessing() {
+async function performInitialProcessing (inputSignalIsAvailable: boolean) {
    try {
-      await Utils.showProgressInfo();
-      AnalysisGui.analyze();
-      SynthesisGui.synthesize(); }
+      if (inputSignalIsAvailable) {
+         await Utils.showProgressInfo();
+         AnalysisGui.analyze(); }
+      SynthesisGui.synthesize();
+      DialogManager.closeProgressInfo();                                       // popup must be closed before setFocus()
+      DomUtils.setFocus("playOutputButton", {preventScroll: true}); }
     finally {
       DialogManager.closeProgressInfo(); }}
 
@@ -24,10 +28,9 @@ async function startup() {
    AnalysisGui.init();
    SynthesisGui.init();
    await AnalysisGui.startup();
-   const doInitProc = AnalysisGui.isInputSignalAvailable();
-   SynthesisGui.startup(doInitProc);
-   if (doInitProc) {
-      await performInitialProcessing(); }
+   const inputSignalIsAvailable = AnalysisGui.isInputSignalAvailable();
+   SynthesisGui.startup(inputSignalIsAvailable);
+   await performInitialProcessing(inputSignalIsAvailable);
    startupCompleted = true; }
 
 document.addEventListener("DOMContentLoaded", () => catchError(startup));

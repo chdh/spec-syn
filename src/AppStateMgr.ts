@@ -132,6 +132,17 @@ function decodeCurveDataByType (b64: string, dataType: CurveDataType) : Float64A
 
 //--- URL set/get --------------------------------------------------------------
 
+function setStr (usp: URLSearchParams, parmName: string, parmValue: string) {
+   if (!parmValue) {
+      return; }
+   usp.set(parmName, parmValue); }
+
+function getStr (usp: URLSearchParams, parmName: string) : string {
+   const s = usp.get(parmName);
+   if (!s) {
+      return ""; }
+   return s; }
+
 function setNum (usp: URLSearchParams, parmName: string, parmValue: number, defaultValue = NaN) {
    if (isNaN(parmValue) || parmValue == defaultValue) {
       return; }
@@ -194,7 +205,8 @@ export interface AppState {
    evenAmplShift:            number;
    spectrumCurveKnots:       Point[];
    amplitudeCurveKnots:      Point[];
-   frequencyCurveKnots:      Point[]; }
+   frequencyCurveKnots:      Point[];
+   reference:                string; }
 
 export interface AppStateUpdate extends Partial<AppState> {
    origSpecCurveFunction?:   UniFunction; }                // used to visualize the original smoothed spectrum curve from the analysis
@@ -210,6 +222,7 @@ export function encodeAppStateUrlParms (appState: AppState) : string {
    setKnots(usp, "spectrumCurve",  appState.spectrumCurveKnots,  CurveDataType.freqAsc, CurveDataType.db,   defaultSpectrumCurveKnots);
    setKnots(usp, "amplitudeCurve", appState.amplitudeCurveKnots, CurveDataType.timeAsc, CurveDataType.db,   defaultAmplitudeCurveKnots);
    setKnots(usp, "frequencyCurve", appState.frequencyCurveKnots, CurveDataType.timeAsc, CurveDataType.freq, defaultFrequencyCurveKnots);
+   setStr(usp, "ref", appState.reference);
    return usp.toString(); }
 
 export function decodeAppStateUrlParms (urlParmsString: string) : AppState {
@@ -224,4 +237,5 @@ export function decodeAppStateUrlParms (urlParmsString: string) : AppState {
    appState.spectrumCurveKnots  = getKnots(usp, "spectrumCurve",  CurveDataType.freqAsc, CurveDataType.db,   defaultSpectrumCurveKnots);
    appState.amplitudeCurveKnots = getKnots(usp, "amplitudeCurve", CurveDataType.timeAsc, CurveDataType.db,   defaultAmplitudeCurveKnots);
    appState.frequencyCurveKnots = getKnots(usp, "frequencyCurve", CurveDataType.timeAsc, CurveDataType.freq, defaultFrequencyCurveKnots);
+   appState.reference = getStr(usp, "ref");
    return appState; }

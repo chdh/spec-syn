@@ -131,6 +131,11 @@ div.actionButtons label {
 .w130 {
    width: 130px; }
 
+#referenceField label {
+   margin-right: 10px; }
+#reference {
+   width: 295px; }
+
 /*--- Function curve viewers and editor --------------------------------------*/
 
 canvas.functionCurveViewer,

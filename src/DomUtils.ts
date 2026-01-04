@@ -55,6 +55,9 @@ export function getText (elementOrId: HTMLElement | string) : string {
 export function setText (elementOrId: HTMLElement | string, text: string) {
    getElement(elementOrId).textContent = text; }
 
+export function setFocus (elementOrId: HTMLElement | string, options = {}) {
+   getElement(elementOrId).focus(options); }
+
 export function getValueNumOpt (elementOrId: HTMLInputElement | string) : number | undefined {
    const e = getInputElement(elementOrId);
    checkValidity(e);
