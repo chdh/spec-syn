@@ -358,10 +358,13 @@ export function synthesize() {
    sp.frequencyCurveFunction = getAdjustedFrequencyCurveFunction();
 
    outputSignal = SpecSyn.synthesize(sp);
+   const averageF0 = SpecSyn.computeAverageF0(sp);
    outputSampleRate = sampleRate;
    outputSignalValid = true;
    loadSignalViewer(outputSignalViewerWidget, outputSignal, outputSampleRate);
    genOutputSpectrum();
+   DomUtils.setText("outputSignalInfo", "Average F0 [Hz]: " + Math.round(averageF0));
+
    refreshMainGui();
    saveUiAppStateToUrl(); }
 
