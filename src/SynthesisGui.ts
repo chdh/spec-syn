@@ -7,6 +7,7 @@ import {Point} from "function-curve-editor";
 import * as DspUtils from "dsp-collection/utils/DspUtils";
 import * as WindowFunctions from "dsp-collection/signal/WindowFunctions";
 import * as Fft from "dsp-collection/signal/Fft";
+import * as ArrayUtils from "dsp-collection/utils/ArrayUtils";
 
 import * as Utils from "./Utils.ts";
 import {catchError, UniFunction} from "./Utils.ts";
@@ -40,12 +41,12 @@ var outputSampleRate:                  number;
 
 function loadSpectrumCurveEditor (knots: Point[], origSpecCurveFunction?: UniFunction) {
    activeOrigSpecCurveFunction = origSpecCurveFunction;
+   const yMinMax = genDbCurveYMinMax(knots, -80);
    const editorState: Partial<FunctionCurveEditor.EditorState> = {
       knots:           knots,
       xMin:            0,
       xMax:            defaultMaxDisplayFreq,
-      yMin:            -100,
-      yMax:            0,
+      ...yMinMax,
       extendedDomain:  false,
       relevantXMin:    0,
       gridEnabled:     true,
@@ -58,12 +59,12 @@ function loadSpectrumCurveEditor (knots: Point[], origSpecCurveFunction?: UniFun
    DomUtils.showElement("showOriginalSpecCurveField", !!origSpecCurveFunction); }
 
 function loadAmplitudeCurveEditor (knots: Point[], tMax: number) {
+   const yMinMax = genDbCurveYMinMax(knots, -22);
    const editorState: Partial<FunctionCurveEditor.EditorState> = {
       knots:           knots,
       xMin:            0,
       xMax:            tMax,
-      yMin:            -70,
-      yMax:            0,
+      ...yMinMax,
       extendedDomain:  false,
       relevantXMin:    0,
       gridEnabled:     true,
@@ -74,12 +75,12 @@ function loadAmplitudeCurveEditor (knots: Point[], tMax: number) {
    amplitudeEditorWidget.setEditorState(editorState); }
 
 function loadFrequencyCurveEditor (knots: Point[], tMax: number) {
+   const yMinMax = genFrequencyCurveYMinMax(knots);
    const editorState: Partial<FunctionCurveEditor.EditorState> = {
       knots:           knots,
       xMin:            0,
       xMax:            tMax,
-      yMin:            0,
-      yMax:            1000,
+      ...yMinMax,
       extendedDomain:  false,
       relevantXMin:    0,
       gridEnabled:     true,
@@ -88,6 +89,35 @@ function loadFrequencyCurveEditor (knots: Point[], tMax: number) {
       yAxisUnit:       "Hz",
       focusShield:     true };
    frequencyEditorWidget.setEditorState(editorState); }
+
+function genDbCurveYMinMax (knots: Point[], loClip: number) : {yMin: number; yMax: number} {
+   const yVals1 = knots.map(knot => knot.y);
+   const yVals = yVals1.filter(y => y >= loClip);
+   const lo = Math.min(...yVals);
+   const hi = Math.max(...yVals);
+   if (!Number.isFinite(lo) || !Number.isFinite(hi)) {
+      return {yMin: -70, yMax: 0}; }
+   const mid = (lo + hi) / 2;
+   const w1 = Math.max(hi - lo, 10);
+   const w = w1 * 1.25;
+   const u = 2;
+   const yMin = Math.floor((mid - w / 2) / u) * u;
+   const yMax = Math.ceil((mid + w / 2) / u) * u;
+   return {yMin, yMax}; }
+
+function genFrequencyCurveYMinMax (knots: Point[]) : {yMin: number; yMax: number} {
+   const yValsSorted = knots.map(knot => knot.y).sort();
+   const lo = ArrayUtils.getQuantileNearestFromSortedArray(yValsSorted, 0.075);
+   const hi = ArrayUtils.getQuantileNearestFromSortedArray(yValsSorted, 0.98);
+   if (!lo || !hi) {
+      return {yMin: 0, yMax: 1000}; }
+   const mid = (lo + hi) / 2;
+   const w1 = Math.max(hi - lo, mid / 25);
+   const w = w1 * 1.5;
+   const u = 5;
+   const yMin = Math.floor((mid - w / 2) / u) * u;
+   const yMax = Math.ceil((mid + w / 2) / u) * u;
+   return {yMin, yMax}; }
 
 function spectrumCurveEditor_customPaintFunction (pctx: FunctionCurveEditor.CustomPaintContext) {
    paintSpectralDistribution(pctx);
