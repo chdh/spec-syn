@@ -105,3 +105,39 @@ export function addChangeEventListener (elementOrId: HTMLElement | string, liste
 
 export function addClickEventListener (elementOrId: HTMLElement | string, listener: Function, ...args: any[]) {
    addEventListener(elementOrId, "click", listener, ...args); }
+
+//------------------------------------------------------------------------------
+
+let visibleInfoTextElement: HTMLDivElement | undefined = undefined;
+
+function prepareFieldInfo2 (labelElement: HTMLLabelElement) {
+   const infoText = labelElement.dataset.info!;
+   const infoButtonElement = document.createElement("div");
+   infoButtonElement.className = "fieldInfoButton";
+   labelElement.appendChild(infoButtonElement);
+   const infoTextElement = document.createElement("div");
+   infoTextElement.innerHTML = infoText;
+   infoTextElement.className = "fieldInfoText hidden";
+   labelElement.appendChild(infoTextElement);
+   infoButtonElement.addEventListener("click", (event: Event) => {
+      event.preventDefault();                                                  // to prevent moving of focus to input element associated with the label
+      if (visibleInfoTextElement && visibleInfoTextElement != infoTextElement) {
+         visibleInfoTextElement.classList.add("hidden"); }
+      const hidden = infoTextElement.classList.toggle("hidden");
+      visibleInfoTextElement = hidden ? undefined : infoTextElement; });
+   infoTextElement.addEventListener("click", (event: Event) => {
+      event.preventDefault(); });                                              // to prevent moving of focus to input element associated with the label
+   }
+
+export function prepareFieldInfo() {
+   for (const labelElement of <NodeListOf<HTMLLabelElement>>document.querySelectorAll("label[data-info]")) {
+      prepareFieldInfo2(labelElement); }
+   document.addEventListener("click", (event: Event) => {
+      if (!visibleInfoTextElement || !(event.target instanceof Node)) {
+         return; }
+      const labelElement = <HTMLLabelElement>visibleInfoTextElement.parentNode;
+      if (labelElement?.contains(event.target) || labelElement?.control?.contains(event.target)) {
+         return; }
+      visibleInfoTextElement.classList.add("hidden");
+      visibleInfoTextElement = undefined; });
+   }

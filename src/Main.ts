@@ -27,6 +27,7 @@ async function startup() {
    audioPlayer = new InternalAudioPlayer();
    AnalysisGui.init();
    SynthesisGui.init();
+   DomUtils.prepareFieldInfo();
    await AnalysisGui.startup();
    const inputSignalIsAvailable = AnalysisGui.isInputSignalAvailable();
    SynthesisGui.startup(inputSignalIsAvailable);
