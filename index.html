@@ -36,8 +36,8 @@
  </div>
 
  <div class="parmBlock">
-  <div class="parmField">
-   <label class="w130" for="f0Reference" data-info="Reference value for the fundamental frequency. Can be estimated. Used for filtering the spectrum and as a reference value for the frequency tracking.">F0 reference [Hz]:</label>
+  <div class="parmField" data-info="Reference value for the fundamental frequency. Can be estimated. Used for filtering the spectrum and as a reference value for the frequency tracking.">
+   <label class="w130" for="f0Reference">F0 reference [Hz]:</label>
    <input class="w110" id="f0Reference" type="number" step="any">
   </div>
   <div class="parmField">
@@ -48,43 +48,43 @@
  <h2><input id="analSpecEnabled" type="checkbox" checked>Spectrum analysis</h2>
 
  <div class="parmBlock parmBlockContinuationFirst">
-  <div class="parmField">
-   <label class="w130" for="analSpecMethod" data-info="Method for creating the smoothed spectrum curve.">Method:</label>
+  <div class="parmField" data-info="Method for creating the smoothed spectrum curve.">
+   <label class="w130" for="analSpecMethod">Method:</label>
    <select class="w110" id="analSpecMethod">
     <option value="smaPwrLog2">Triple SMA (1x power + 2x log)</option>
     <option value="firLpPwrLog" selected>Dual FIR LP filter (1x power + 1x log)</option>
    </select>
   </div>
-  <div class="parmField">
-   <label class="w130" for="analSpecWidth1" data-info="Filter window width for the first FIR LP filter, relative to the F0 reference value.">Filter width 1 [F0]:</label>
+  <div class="parmField" data-info="Filter window width for the first FIR LP filter, relative to the F0 reference value.">
+   <label class="w130" for="analSpecWidth1">Filter width 1 [F0]:</label>
    <input class="w110" id="analSpecWidth1" type="number" step="any" required value="1.25">
   </div>
-  <div class="parmField" id="analSpecFunc1Field">
-   <label class="w130" for="analSpecFunc1" data-info="Filter window function used for the first FIR LP filter.">Filter function 1:</label>
+  <div class="parmField" id="analSpecFunc1Field" data-info="Filter window function used for the first FIR LP filter.">
+   <label class="w130" for="analSpecFunc1">Filter function 1:</label>
    <select class="w110" id="analSpecFunc1">
    </select>
   </div>
-  <div class="parmField" id="analSpecWidth2Field">
-   <label class="w130" for="analSpecWidth2" data-info="Filter window width for the second FIR LP filter, relative to the F0 reference value.">Filter width 2 [F0]:</label>
+  <div class="parmField" id="analSpecWidth2Field" data-info="Filter window width for the second FIR LP filter, relative to the F0 reference value.">
+   <label class="w130" for="analSpecWidth2">Filter width 2 [F0]:</label>
    <input class="w110" id="analSpecWidth2" type="number" step="any" required value="0.75">
   </div>
-  <div class="parmField" id="analSpecFunc2Field">
-   <label class="w130" for="analSpecFunc2" data-info="Filter window function used for the second FIR LP filter.">Filter function 2:</label>
+  <div class="parmField" id="analSpecFunc2Field" data-info="Filter window function used for the second FIR LP filter.">
+   <label class="w130" for="analSpecFunc2">Filter function 2:</label>
    <select class="w110" id="analSpecFunc2">
    </select>
   </div>
  </div>
  <div class="parmBlock parmBlockContinuationLast">
-  <div class="parmField">
-   <label class="w130" for="analSpecMaxFreq" data-info="Maximum frequency for the spectrum calculation in Hz.">Max frequency [Hz]:</label>
+  <div class="parmField" data-info="Maximum frequency for the spectrum calculation in Hz.">
+   <label class="w130" for="analSpecMaxFreq">Max frequency [Hz]:</label>
    <input class="w110" id="analSpecMaxFreq" type="text" required value="5500">
   </div>
-  <div class="parmField">
-   <label class="w130" for="analSpecStepWidth" data-info="Step width in Hz for generating the knots for the editable spectrum function curve.">Step width [Hz]:</label>
+  <div class="parmField" data-info="Step width in Hz for generating the knots for the editable spectrum function curve.">
+   <label class="w130" for="analSpecStepWidth">Step width [Hz]:</label>
    <input class="w110" id="analSpecStepWidth" type="number" step="any" required value="100">
   </div>
-  <div class="parmField">
-   <label class="w130" for="analSpecWindowFunc" data-info="Window function to apply before the FFT.">FFT window func.:</label>
+  <div class="parmField" data-info="Window function to apply before the FFT.">
+   <label class="w130" for="analSpecWindowFunc">FFT window func.:</label>
    <select class="w110" id="analSpecWindowFunc">
    </select>
   </div>
@@ -94,8 +94,8 @@
  <h2><input id="analAmplEnabled" type="checkbox" checked>Amplitude curve analysis</h2>
 
  <div class="parmBlock">
-  <div class="parmField">
-   <label class="w130" for="analAmplStepWidth" data-info="Step width in ms for generating the knots for the editable amplitude function curve.">Step width [ms]:</label>
+  <div class="parmField" data-info="Step width in ms for generating the knots for the editable amplitude function curve.">
+   <label class="w130" for="analAmplStepWidth">Step width [ms]:</label>
    <input class="w110" id="analAmplStepWidth" type="number" step="any" required value="50">
   </div>
  </div>
@@ -103,8 +103,8 @@
  <h2><input id="analFreqEnabled" type="checkbox" checked>Frequency curve analysis</h2>
 
  <div class="parmBlock">
-  <div class="parmField">
-   <label class="w130" for="analFreqStepWidth" data-info="Step width in ms for generating the knots for the editable fundamental frequency function curve.">Step width [ms]:</label>
+  <div class="parmField" data-info="Step width in ms for generating the knots for the editable fundamental frequency function curve.">
+   <label class="w130" for="analFreqStepWidth">Step width [ms]:</label>
    <input class="w110" id="analFreqStepWidth" type="number" required min="1" value="50">
   </div>
  </div>
@@ -113,8 +113,8 @@
   <button id="analyzeButton">Analyze</button>
   <button id="analAndSynthButton">Analyze + Synth</button>
   <button id="analSynthPlayButton">Anal+Syn+Play</button>
-  <div class="parmField" id="referenceField">
-   <label for="reference" data-info="An arbitrary text which is stored in the URL.">Reference:</label>
+  <div class="parmField" id="referenceField" data-info="An arbitrary text which is stored in the URL.">
+   <label for="reference">Reference:</label>
    <input id="reference" type="text">
   </div>
  </div>
@@ -129,8 +129,8 @@
 </div>
 <div class="miniControlsBelowViewer">
  <div id="functionCurveEditorHelpButton" class="miniPseudoButton">Help</div>
- <div id="specDistPaintModeField" class="miniControlsField">
-  <label for="specDistPaintMode" data-info="Visualization of the spectral broadening of the harmonics.">Harmonic spread:</label>
+ <div id="specDistPaintModeField" class="miniControlsField" data-info="Visualization of the spectral broadening of the harmonics.">
+  <label for="specDistPaintMode">Harmonic spread:</label>
   <select id="specDistPaintMode">
    <option value="0">none</option>
    <option value="1">background</option>
@@ -138,8 +138,8 @@
    <option value="3">line</option>
   </select>
  </div>
- <div id="showOriginalSpecCurveField" class="miniControlsField hidden">
-  <label for="showOriginalSpecCurve" data-info="Show the original smoothed spectrum curve from the analysis.">Analysis curve:</label>
+ <div id="showOriginalSpecCurveField" class="miniControlsField hidden" data-info="Show the original smoothed spectrum curve from the analysis.">
+  <label for="showOriginalSpecCurve">Analysis curve:</label>
   <input id="showOriginalSpecCurve" type="checkbox">
  </div>
 </div>
@@ -160,32 +160,32 @@
 </div>
 
 <div class="parmBlock">
- <div class="parmField">
-  <label class="w130" for="f0Multiplier" data-info="Multiplicative factor for the fundamental frequency.">F0 multiplier:</label>
+ <div class="parmField" data-info="Multiplicative factor for the fundamental frequency.">
+  <label class="w130" for="f0Multiplier">F0 multiplier:</label>
   <input class="w110" id="f0Multiplier" type="number" step="any" min="0.001" required>
  </div>
- <div class="parmField">
-  <label class="w130" for="specMultiplier" data-info="Multiplicative factor for the frequency axis of the spectrum.">Spec. multiplier:</label>
+ <div class="parmField" data-info="Multiplicative factor for the frequency axis of the spectrum.">
+  <label class="w130" for="specMultiplier">Spec. multiplier:</label>
   <input class="w110" id="specMultiplier" type="number" step="any" min="0.001" required>
  </div>
- <div class="parmField">
-  <label class="w130" for="specShift" data-info="Shift in Hz for the frequency axis of the spectrum.">Spectrum shift [Hz]:</label>
+ <div class="parmField" data-info="Shift in Hz for the frequency axis of the spectrum.">
+  <label class="w130" for="specShift">Spectrum shift [Hz]:</label>
   <input class="w110" id="specShift" type="number" step="any" required>
  </div>
- <div class="parmField">
-  <label class="w130" for="evenAmplShift" data-info="Shift in dB for the amplitudes of the even numbered harmonics.">Even amp. shift [dB]:</label>
+ <div class="parmField" data-info="Shift in dB for the amplitudes of the even numbered harmonics.">
+  <label class="w130" for="evenAmplShift">Even amp. shift [dB]:</label>
   <input class="w110" id="evenAmplShift" type="number" step="any" required>
  </div>
- <div class="parmField">
-  <label class="w130" for="sampleRate" data-info="Sample rate in Hz for synthesizing the output signal.">Sample rate [Hz]:</label>
+ <div class="parmField" data-info="Sample rate in Hz for synthesizing the output signal.">
+  <label class="w130" for="sampleRate">Sample rate [Hz]:</label>
   <input class="w110" id="sampleRate" type="text" required>
  </div>
- <div class="parmField">
-  <label class="w130" for="agcRmsLevel" data-info="Output RMS level for automatic gain control (AGC).">AGC RMS level:</label>
+ <div class="parmField" data-info="Output RMS level for automatic gain control (AGC).">
+  <label class="w130" for="agcRmsLevel">AGC RMS level:</label>
   <input class="w110" id="agcRmsLevel" type="number" step="any" min="0" required>
  </div>
- <div class="parmField">
-  <label class="w130" for="outSpecWindowFunction" data-info="Window function for generating the output spectrum.">Window function:</label>
+ <div class="parmField" data-info="Window function for generating the output spectrum.">
+  <label class="w130" for="outSpecWindowFunction">Window function:</label>
   <select class="w110" id="outSpecWindowFunction">
   </select>
  </div>

@@ -97,28 +97,26 @@ select:focus,
    margin-top: 8px; }
 
 .parmField {
+   position: relative;
    display: flex;
    align-items: baseline; }
 
 .parmBlock input[type="checkbox"] {
    margin-left: 0; }
 
-label {
-   position: relative; }
-
 .fieldInfoButton {
    position: absolute;
-   right: 0px;
-   top: -10px;
-   width: 10px;
-   height: 10px;
+   right: -17px;
+   top: -3px;
+   width: 12px;
+   height: 12px;
    box-sizing: content-box;
    padding: 4px;
    z-index: 1;
    cursor: pointer;
    background-repeat: no-repeat;
    background-position: center;
-   background-size: 10px 10px;
+   background-size: 12px 12px;
    background-image: url('data:image/svg+xml,<svg version="1.1" viewBox="2 2 16 16" xmlns="http://www.w3.org/2000/svg"><path d="M10 9.25 a.75.75 0 0 1 .75.75 v3.333 a.75.75 0 0 1-1.5 0 V10 a.75.75 0 0 1 .75-.75 M10 5.833 a.959.959 0 1 1-.001 1.917 A.959.959 0 0 1 10 5.833" fill="%2305c"/><path d="m10 2.085a7.915 7.915 0 1 1 0 15.83 7.915 7.915 0 0 1 0-15.83m0 1.33a6.585 6.585 0 1 0 0 13.17 6.585 6.585 0 0 0 0-13.17" clip-rule="evenodd" fill="%2305c" fill-rule="evenodd"/></svg>'); }
 .miniControlsBelowViewer .fieldInfoButton {
    top: -8px; }
@@ -197,6 +195,7 @@ div.functionCurveEditorFrame {
 .miniControlsBelowViewer .miniPseudoButton {
    font-size: 13px; }
 .miniControlsField {
+   position: relative;
    display: flex;
    align-items: baseline; }
 .miniControlsField input[type="checkbox"] {

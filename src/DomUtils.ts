@@ -106,38 +106,34 @@ export function addChangeEventListener (elementOrId: HTMLElement | string, liste
 export function addClickEventListener (elementOrId: HTMLElement | string, listener: Function, ...args: any[]) {
    addEventListener(elementOrId, "click", listener, ...args); }
 
-//------------------------------------------------------------------------------
+//--- Field info ---------------------------------------------------------------
 
 let visibleInfoTextElement: HTMLDivElement | undefined = undefined;
 
-function prepareFieldInfo2 (labelElement: HTMLLabelElement) {
-   const infoText = labelElement.dataset.info!;
+function prepareFieldInfo2 (fieldElement: HTMLElement) {
    const infoButtonElement = document.createElement("div");
    infoButtonElement.className = "fieldInfoButton";
-   labelElement.appendChild(infoButtonElement);
+   fieldElement.appendChild(infoButtonElement);
    const infoTextElement = document.createElement("div");
+   const infoText = fieldElement.dataset.info!;
    infoTextElement.innerHTML = infoText;
    infoTextElement.className = "fieldInfoText hidden";
-   labelElement.appendChild(infoTextElement);
-   infoButtonElement.addEventListener("click", (event: Event) => {
-      event.preventDefault();                                                  // to prevent moving of focus to input element associated with the label
+   fieldElement.appendChild(infoTextElement);
+   infoButtonElement.addEventListener("click", (_event: Event) => {
       if (visibleInfoTextElement && visibleInfoTextElement != infoTextElement) {
          visibleInfoTextElement.classList.add("hidden"); }
       const hidden = infoTextElement.classList.toggle("hidden");
-      visibleInfoTextElement = hidden ? undefined : infoTextElement; });
-   infoTextElement.addEventListener("click", (event: Event) => {
-      event.preventDefault(); });                                              // to prevent moving of focus to input element associated with the label
-   }
+      visibleInfoTextElement = hidden ? undefined : infoTextElement; }); }
 
 export function prepareFieldInfo() {
-   for (const labelElement of <NodeListOf<HTMLLabelElement>>document.querySelectorAll("label[data-info]")) {
-      prepareFieldInfo2(labelElement); }
+   for (const fieldElement of <NodeListOf<HTMLElement>>document.querySelectorAll("div[data-info]")) {
+      prepareFieldInfo2(fieldElement); }
    document.addEventListener("click", (event: Event) => {
       if (!visibleInfoTextElement || !(event.target instanceof Node)) {
          return; }
-      const labelElement = <HTMLLabelElement>visibleInfoTextElement.parentNode;
-      if (labelElement?.contains(event.target) || labelElement?.control?.contains(event.target)) {
+      const fieldElement = <HTMLElement>visibleInfoTextElement.parentNode;
+      if (fieldElement?.contains(event.target)) {
          return; }
+      // Handle a click somewhere outside of the current field and it's sub-elements.
       visibleInfoTextElement.classList.add("hidden");
-      visibleInfoTextElement = undefined; });
-   }
+      visibleInfoTextElement = undefined; }); }
