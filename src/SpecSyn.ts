@@ -1,5 +1,6 @@
 // Spectral harmonic synthesizer kernel.
 
+import * as DspUtils from "dsp-collection/utils/DspUtils";
 import {UniFunction, convertDbToAmplitudeOr0} from "./Utils.ts";
 
 const PI2 = Math.PI * 2;
@@ -11,7 +12,7 @@ export interface SynthesizerParms {
    frequencyCurveFunction:             UniFunction;                            // function input: time position [s], output: fundamental frequency (f0) [Hz]
    duration:                           number;                                 // sound duration [s]
    sampleRate:                         number;                                 // sample rate [Hz]
-   agcRmsLevel:                        number; }                               // output RMS level for automatic gain control (AGC)
+   agcRmsLevel:                        number; }                               // output RMS level for automatic gain control (AGC) or 0
 
 export function synthesize (sp: SynthesizerParms) : Float64Array {
    const sampleCount = Math.round(sp.duration * sp.sampleRate);
@@ -41,36 +42,8 @@ export function synthesize (sp: SynthesizerParms) : Float64Array {
       if (w >= PI2) {
          w -= PI2; }}
    if (sp.agcRmsLevel > 0) {
-      adjustSignalGain(signal, sp.agcRmsLevel); }
+      DspUtils.adjustSignalLevel(signal, {targetRms: sp.agcRmsLevel, targetMaxLevel: 0.99}); }
    return signal; }
-
-function adjustSignalGain (buf: Float64Array, targetRms: number) {
-   const n = buf.length;
-   if (!n) {
-      return; }
-   const rms = computeRms(buf);
-   if (!rms) {
-      return; }
-   let r = targetRms / rms;
-   const maxAbs = findMaxAbsValue(buf);
-   if (r * maxAbs >= 1) {                                                      // prevent clipping
-      r = 0.99 / maxAbs; }
-   for (let i = 0; i < n; i++) {
-      buf[i] *= r; }}
-
-function computeRms (buf: Float64Array) : number {
-   const n = buf.length;
-   let acc = 0;
-   for (let i = 0; i < n; i++) {
-      acc += buf[i] ** 2; }
-   return Math.sqrt(acc / n); }
-
-function findMaxAbsValue (buf: Float64Array) : number {
-   const n = buf.length;
-   let maxAbs = 0;
-   for (let i = 0; i < n; i++) {
-      maxAbs = Math.max(maxAbs, Math.abs(buf[i])); }
-   return maxAbs; }
 
 // Computes the weighted average F0 value.
 export function computeAverageF0 (sp: SynthesizerParms) : number {

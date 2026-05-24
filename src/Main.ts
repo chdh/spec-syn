@@ -5,7 +5,7 @@ import * as DialogManager from "dialog-manager";
 import {catchError} from "./Utils.ts";
 import * as AnalysisGui from "./AnalysisGui.ts";
 import * as SynthesisGui from "./SynthesisGui.ts";
-import InternalAudioPlayer from "./InternalAudioPlayer.js";
+import InternalAudioPlayer from "./InternalAudioPlayer.ts";
 import * as DomUtils from "./DomUtils.ts";
 import * as Utils from "./Utils.ts";
 

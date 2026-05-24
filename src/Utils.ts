@@ -45,7 +45,9 @@ async function catchErrorAsync (f: Function, ...args: any[]) {
          await r; }}
     catch (error) {
       console.log(error);
-      alert("Error: " + error); }}
+      const s1 = String(error);
+      const s2 = s1.startsWith("Error") ? s1 : "Error: " + s1;
+      alert(s2); }}
 
 export function openFileOpenDialog (callback: (file: File) => void) {
    if ((<any>window).showOpenFilePicker) {
@@ -86,7 +88,7 @@ async function openSaveAsDialog_new (data: ArrayBuffer, fileName: string, mimeTy
    let fileHandle: FileSystemFileHandle;
    try {
       fileHandle = await (<any>window).showSaveFilePicker(pickerOpts); }
-    catch (e) {
+    catch (e: any) {
       if (e.name == "AbortError") {
          return; }
       throw e; }

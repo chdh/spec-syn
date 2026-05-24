@@ -109,10 +109,9 @@ module.exports = tseslint.config({
       "check-file": checkFile,
       "@stylistic": stylistic },
    languageOptions: {
-   parserOptions: {
-      project: "./tsconfig.json",
-         warnOnUnsupportedTypeScriptVersion: false,
-         },
+      parserOptions: {
+         project: "./tsconfig.json",
+         warnOnUnsupportedTypeScriptVersion: false },
       globals: {
         ...globals.browser }},
    extends: [

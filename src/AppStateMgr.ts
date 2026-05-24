@@ -8,7 +8,7 @@ import * as Utils from "./Utils.ts";
 import {UniFunction} from "./Utils.ts";
 
 const defaultSampleRate                = 44100;
-const defaultAgcRmsLevel               = 0.18;
+const defaultAgcRmsLevel               = 0.2;
 
 // Simple example:
 // const defaultSpectrumCurveKnots        = convertKnotsArray([[70, -62], [1100, -25], [2600, -68], [4200, -40], [5500, -71]]);
