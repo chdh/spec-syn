@@ -64,13 +64,14 @@ function createSmoothedSpectrum (spectrum: Float64Array, scalingFactor: number, 
 
 function getAvgSpectrumPoints (spectrum: Float64Array, scalingFactor: number, stepWidth: number, maxFreq: number) : Point[] {
    const points: Point[] = [];
-   for (let f = stepWidth; f < maxFreq; f += stepWidth) {
-      const i = Math.round(f * scalingFactor);
+   for (let f1 = 0; f1 < maxFreq; f1 += stepWidth) {
+      const f2 = (f1 == 0) ? stepWidth / 2 : f1;                                                   // add a first point at stepWidth / 2 to avoid artefacts
+      const i = Math.round(f2 * scalingFactor);
       if (i <= 0 || i >= spectrum.length) {
          continue; }
       const y = spectrum[i];
       if (isFinite(y)) {
-         points.push({x: f, y}); }}
+         points.push({x: f2, y}); }}
    return points; }
 
 export function analyzeSpectrum (signal: Float32Array, sampleRate: number, parms: GuiParms) {

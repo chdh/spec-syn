@@ -18,8 +18,11 @@ async function waitForDisplayUpdate() : Promise<void> {
    await waitForNextAnimationFrame();
    await waitForNextAnimationFrame(); }
 
-export async function showProgressInfo() {
-   DialogManager.showProgressInfo({msgHtml: `<div class="progressInfoMsg">Processing...</div>`});
+export async function showProgressInfo (mp: DialogManager.ProgressInfoParms = {}) {
+   const mp2 = {...mp};
+   if (!mp2.msgText && !mp2.msgHtml) {
+      mp2.msgHtml = `<div class="progressInfoMsg">Processing...</div>`; }
+   DialogManager.showProgressInfo(mp2);
    await waitForDisplayUpdate(); }
 
 export function formatNumber (n: number | undefined, includeSign: boolean = false) : string {

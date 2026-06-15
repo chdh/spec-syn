@@ -12,10 +12,9 @@
 
 <h1>SpecSyn - Spectral Harmonic Synthesizer</h1>
 
-<div id="showAnalysisLink" class="pseudoButton">Analysis</div>
+<h2 id="analysisTitle">Analysis <input type="checkbox" id="analysisEnabled" class="titleCheckboxRight"></h2>
 
 <div id="analysisSection">
- <h2>Analysis <span id="hideAnalysisLink" class="pseudoButton">Hide</span></h2>
 
  <div id="inputSignalViewerFrame" class="functionCurveViewerFrame canvasFrame">
   <canvas id="inputSignalViewerCanvas" class="functionCurveViewer" tabindex="-1">
@@ -43,9 +42,10 @@
   <div class="parmField">
    <span id="recalculateF0ReferenceButton" class="pseudoButton">Recalculate</span>
   </div>
+
  </div>
 
- <h2><input id="analSpecEnabled" type="checkbox" checked>Spectrum analysis</h2>
+ <h2><input id="analSpecEnabled" class="titleCheckboxLeft" type="checkbox" checked>Spectrum analysis</h2>
 
  <div class="parmBlock parmBlockContinuationFirst">
   <div class="parmField" data-info="Method for creating the smoothed spectrum curve.">
@@ -91,7 +91,7 @@
 
  </div>
 
- <h2><input id="analAmplEnabled" type="checkbox" checked>Amplitude curve analysis</h2>
+ <h2><input id="analAmplEnabled" class="titleCheckboxLeft" type="checkbox" checked>Amplitude curve analysis</h2>
 
  <div class="parmBlock">
   <div class="parmField" data-info="Step width in ms for generating the knots for the editable amplitude function curve.">
@@ -100,7 +100,7 @@
   </div>
  </div>
 
- <h2><input id="analFreqEnabled" type="checkbox" checked>Frequency curve analysis</h2>
+ <h2><input id="analFreqEnabled" class="titleCheckboxLeft" type="checkbox" checked>Frequency curve analysis</h2>
 
  <div class="parmBlock">
   <div class="parmField" data-info="Step width in ms for generating the knots for the editable fundamental frequency function curve.">
@@ -157,6 +157,15 @@
 <div id="frequencyEditorFrame" class="functionCurveEditorFrame canvasFrame">
  <canvas id="frequencyEditorCanvas" class="functionCurveEditor" tabindex="-1">
  </canvas>
+</div>
+
+<h2>Spectral wobbling <input type="checkbox" id="wobblingEnabled" class="titleCheckboxRight"></h2>
+
+<div id="wobblingSection">
+ <div id="wobblingEditorFrame" class="functionCurveEditorFrame canvasFrame">
+  <canvas id="wobblingEditorCanvas" class="functionCurveEditor" tabindex="-1">
+  </canvas>
+ </div>
 </div>
 
 <div class="parmBlock">

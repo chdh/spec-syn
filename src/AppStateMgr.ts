@@ -18,6 +18,7 @@ const defaultAgcRmsLevel               = 0.2;
 const defaultSpectrumCurveKnots        = convertKnotsArray([[50, -83.1], [188, -54.3], [327, -50.4], [465, -41], [604, -47.5], [742, -65], [881, -66.4], [1019, -67.4], [1158, -72.1], [1296, -73.6], [1435, -68.4], [1573, -68.3], [1712, -71.5], [1850, -66.4], [1988, -57.7], [2127, -55.3], [2265, -53.5], [2404, -53.5], [2542, -53], [2681, -54.6], [2819, -56], [2958, -60.4], [3096, -60.8], [3235, -62.9], [3373, -58.1], [3512, -53.4], [3650, -54.5], [3788, -56.9], [3927, -64.2], [4065, -69.7], [4204, -84.3], [4342, -90.5], [4481, -92.8], [4619, -90.9], [4758, -86.4], [4896, -86.7], [5035, -89], [5173, -85.8], [5312, -84.1], [5450, -84.4]]);
 const defaultAmplitudeCurveKnots       = convertKnotsArray([[0.01, -67.1], [0.09, -64.8], [0.17, -16.3], [0.25, -18.1], [0.33, -15.8], [0.410000, -15.0000], [0.49, -13.6], [0.570000, -13.4000], [0.65, -15], [0.73, -13.7], [0.81, -15], [0.89, -13.8], [0.97, -14.8], [1.05, -14.4], [1.13000, -13.9000], [1.21, -14], [1.29, -14.1], [1.37, -14.2], [1.45, -15.6], [1.53, -13.5], [1.61, -16.5], [1.69, -22.9], [1.77, -46], [1.85, -56.4], [1.93, -65.3]]);
 const defaultFrequencyCurveKnots       = convertKnotsArray([[0, 191.55], [0.03, 191.55], [0.06, 191.55], [0.09, 191.55], [0.12, 192.97], [0.15, 213.11], [0.18, 227.74], [0.21, 241.75], [0.24, 249.36], [0.27, 249.00], [0.3, 245.62], [0.33, 248.59], [0.36, 251.36], [0.39, 252.64], [0.42, 248.41], [0.45, 247.53], [0.48, 248.88], [0.51, 252.39], [0.54, 254.38], [0.57, 248.74], [0.6, 246.78], [0.63, 252.36], [0.66, 251.99], [0.69, 253.04], [0.72, 250.64], [0.75, 251.26], [0.78, 250.80], [0.81, 252.73], [0.84, 255.43], [0.87, 252.65], [0.9, 250.22], [0.93, 252.21], [0.96, 252.09], [0.99, 246.65], [1.02, 246.54], [1.05, 251.80], [1.08, 254.48], [1.11, 252.66], [1.14, 248.56], [1.17, 246.42], [1.2, 249.97], [1.23, 251.73], [1.26, 252.75], [1.29, 251.66], [1.32, 250.59], [1.35, 248.77], [1.38, 248.49], [1.41, 254.72], [1.44, 256.25], [1.47, 252.44], [1.5, 252.08], [1.53, 250.92], [1.56, 252.95], [1.59, 252.56], [1.62, 255.36], [1.65, 250.03], [1.68, 240.90], [1.71, 241.56], [1.74, 240.52], [1.77, 234.60], [1.8, 246.93]]);
+const defaultWobblingCurveKnots        = convertKnotsArray([[3, -10], [50, -60]]);
 
 function convertKnotsArray (a: number[][]) : Point[] {
    return a.map((e) => <Point>{x: e[0], y: e[1]}); }
@@ -157,6 +158,20 @@ function getNum (usp: URLSearchParams, parmName: string, defaultValue = NaN) : n
       throw new Error(`Invalid value "${s}" for numeric URL parameter "${parmName}".`); }
    return v; }
 
+function setBool (usp: URLSearchParams, parmName: string, parmValue: boolean, defaultValue = false) {
+   if (parmValue == defaultValue) {
+      return; }
+   usp.set(parmName, parmValue ? "1" : "0"); }
+
+function getBool (usp: URLSearchParams, parmName: string, defaultValue = false) : boolean {
+   const s = usp.get(parmName);
+   if (!s) {
+      return defaultValue; }
+   switch (s) {
+      case "0": return false;
+      case "1": return true;
+      default: throw new Error(`Invalid value "${s}" for boolean URL parameter "${parmName}".`); }}
+
 function compareKnots (knots1: Point[], knots2: Point[]) : boolean {
    if (knots1.length != knots2.length) {
       return false; }
@@ -203,9 +218,11 @@ export interface AppState {
    specMultiplier:           number;
    specShift:                number;
    evenAmplShift:            number;
+   wobblingEnabled:          boolean;
    spectrumCurveKnots:       Point[];
    amplitudeCurveKnots:      Point[];
    frequencyCurveKnots:      Point[];
+   wobblingCurveKnots:       Point[];
    reference:                string; }
 
 export interface AppStateUpdate extends Partial<AppState> {
@@ -213,29 +230,33 @@ export interface AppStateUpdate extends Partial<AppState> {
 
 export function encodeAppStateUrlParms (appState: AppState) : string {
    const usp = new URLSearchParams();
-   setNum(usp, "sampleRate",     appState.sampleRate,     defaultSampleRate);
-   setNum(usp, "agcRmsLevel",    appState.agcRmsLevel,    defaultAgcRmsLevel);
-   setNum(usp, "f0Multiplier",   appState.f0Multiplier,   1);
-   setNum(usp, "specMultiplier", appState.specMultiplier, 1);
-   setNum(usp, "specShift",      appState.specShift,      0);
-   setNum(usp, "evenAmplShift",  appState.evenAmplShift,  0);
+   setNum(usp, "sampleRate",       appState.sampleRate,     defaultSampleRate);
+   setNum(usp, "agcRmsLevel",      appState.agcRmsLevel,    defaultAgcRmsLevel);
+   setNum(usp, "f0Multiplier",     appState.f0Multiplier,   1);
+   setNum(usp, "specMultiplier",   appState.specMultiplier, 1);
+   setNum(usp, "specShift",        appState.specShift,      0);
+   setNum(usp, "evenAmplShift",    appState.evenAmplShift,  0);
+   setBool(usp, "wobblingEnabled", appState.wobblingEnabled);
    setKnots(usp, "spectrumCurve",  appState.spectrumCurveKnots,  CurveDataType.freqAsc, CurveDataType.db,   defaultSpectrumCurveKnots);
    setKnots(usp, "amplitudeCurve", appState.amplitudeCurveKnots, CurveDataType.timeAsc, CurveDataType.db,   defaultAmplitudeCurveKnots);
    setKnots(usp, "frequencyCurve", appState.frequencyCurveKnots, CurveDataType.timeAsc, CurveDataType.freq, defaultFrequencyCurveKnots);
+   setKnots(usp, "wobblingCurve",  appState.wobblingCurveKnots,  CurveDataType.freqAsc, CurveDataType.db,   defaultWobblingCurveKnots);
    setStr(usp, "ref", appState.reference);
    return usp.toString(); }
 
 export function decodeAppStateUrlParms (urlParmsString: string) : AppState {
    const usp = new URLSearchParams(urlParmsString);
    const appState = <AppState>{};
-   appState.sampleRate     = getNum(usp, "sampleRate",     defaultSampleRate);
-   appState.agcRmsLevel    = getNum(usp, "agcRmsLevel",    defaultAgcRmsLevel);
-   appState.f0Multiplier   = getNum(usp, "f0Multiplier",   1);
-   appState.specMultiplier = getNum(usp, "specMultiplier", 1);
-   appState.specShift      = getNum(usp, "specShift",      0);
-   appState.evenAmplShift  = getNum(usp, "evenAmplShift",  0);
+   appState.sampleRate      = getNum(usp, "sampleRate",     defaultSampleRate);
+   appState.agcRmsLevel     = getNum(usp, "agcRmsLevel",    defaultAgcRmsLevel);
+   appState.f0Multiplier    = getNum(usp, "f0Multiplier",   1);
+   appState.specMultiplier  = getNum(usp, "specMultiplier", 1);
+   appState.specShift       = getNum(usp, "specShift",      0);
+   appState.evenAmplShift   = getNum(usp, "evenAmplShift",  0);
+   appState.wobblingEnabled = getBool(usp, "wobblingEnabled");
    appState.spectrumCurveKnots  = getKnots(usp, "spectrumCurve",  CurveDataType.freqAsc, CurveDataType.db,   defaultSpectrumCurveKnots);
    appState.amplitudeCurveKnots = getKnots(usp, "amplitudeCurve", CurveDataType.timeAsc, CurveDataType.db,   defaultAmplitudeCurveKnots);
    appState.frequencyCurveKnots = getKnots(usp, "frequencyCurve", CurveDataType.timeAsc, CurveDataType.freq, defaultFrequencyCurveKnots);
+   appState.wobblingCurveKnots  = getKnots(usp, "wobblingCurve",  CurveDataType.freqAsc, CurveDataType.db,   defaultWobblingCurveKnots);
    appState.reference = getStr(usp, "ref");
    return appState; }

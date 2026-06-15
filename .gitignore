@@ -1,6 +1,7 @@
 $$BackupControl.txt
 app.js
 build.bat
+experiments
 node_modules
 notes.txt
 package-lock.json

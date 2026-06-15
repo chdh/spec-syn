@@ -14,8 +14,9 @@ export var startupCompleted: boolean = false;
 
 async function performInitialProcessing (inputSignalIsAvailable: boolean) {
    try {
+      if (inputSignalIsAvailable || DomUtils.getChecked("wobblingEnabled")) {
+         await Utils.showProgressInfo(); }
       if (inputSignalIsAvailable) {
-         await Utils.showProgressInfo();
          AnalysisGui.analyze(); }
       SynthesisGui.synthesize();
       DialogManager.closeProgressInfo();                                       // popup must be closed before setFocus()

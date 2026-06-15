@@ -26,6 +26,9 @@ H2 {
    margin-bottom: 15px;
    vertical-align: baseline; }
 
+#analysisTitle {
+   font-size: 18px; }
+
 a {
    color: #07C;
    text-decoration: none; }
@@ -41,17 +44,6 @@ a:hover {
 div.footer {
    margin-top: 15px;
    font-size: 13px; }
-
-#hideAnalysisLink {
-   margin-left: 5px;
-   font-weight: normal;
-   font-size: 15px; }
-#showAnalysisLink {
-   display: none; }
-body.analysisHidden #showAnalysisLink {
-   display: block; }
-body.analysisHidden #analysisSection {
-   display: none; }
 
 code,
 .code {
@@ -78,6 +70,12 @@ select:focus,
    outline: 1px auto #4D90FE; }
 .canvasFrame:focus-within {
    outline-style: solid; }
+.titleCheckboxLeft {
+   margin-left: 0;
+   margin-right: 8px; }
+.titleCheckboxRight {
+   margin-left: 8px;
+   margin-right: 0; }
 
 .hidden {
    display: none !important; }
@@ -100,9 +98,6 @@ select:focus,
    position: relative;
    display: flex;
    align-items: baseline; }
-
-.parmBlock input[type="checkbox"] {
-   margin-left: 0; }
 
 .fieldInfoButton {
    position: absolute;
@@ -178,7 +173,8 @@ div.functionCurveEditorFrame {
    overflow: hidden; }
 
 #amplitudeEditorFrame,
-#frequencyEditorFrame {
+#frequencyEditorFrame,
+#wobblingEditorFrame {
    height: 200px; }
 
 #inputSignalViewerFrame,

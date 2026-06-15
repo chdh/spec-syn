@@ -211,17 +211,19 @@ function refreshMainGui() {
    analSynthPlayButtonTextText ??= DomUtils.getText("analSynthPlayButton");
    const newPlayInputButtonText = audioPlayer.isPlaying() ? "Stop" : playInputButtonText;
    const newAnalSynthPlayButtonText = audioPlayer.isPlaying() ? "Stop" : analSynthPlayButtonTextText;
+   const analysisEnabled = DomUtils.getChecked("analysisEnabled");
    //
    inputSignalViewerWidget.disabled = !inputSignalValid;
    DomUtils.enableElement("playInputButton", isInputSignalAvailable());
    DomUtils.setText("playInputButton", newPlayInputButtonText);
    DomUtils.enableElement("saveInputWavFileButton", isInputSignalAvailable());
    const analysisSubEnabled = DomUtils.getChecked("analSpecEnabled") || DomUtils.getChecked("analAmplEnabled") || DomUtils.getChecked("analFreqEnabled");
-   const analysisEnabled = isInputSignalAvailable() && analysisSubEnabled;
-   DomUtils.enableElement("analyzeButton", analysisEnabled);
-   DomUtils.enableElement("analAndSynthButton", analysisEnabled);
-   DomUtils.enableElement("analSynthPlayButton", analysisEnabled);
+   const analysisActionEnabled = isInputSignalAvailable() && analysisSubEnabled;
+   DomUtils.enableElement("analyzeButton", analysisActionEnabled);
+   DomUtils.enableElement("analAndSynthButton", analysisActionEnabled);
+   DomUtils.enableElement("analSynthPlayButton", analysisActionEnabled);
    DomUtils.setText("analSynthPlayButton", newAnalSynthPlayButtonText);
+   DomUtils.showElement("analysisSection", analysisEnabled);
    refreshGuiDependencies_analSpecMethod(); }
 
 async function playInputButton_click() {
@@ -236,9 +238,6 @@ function saveInputWavFileButton_click() {
    const fileName = Utils.removeFileNameExtension(inputFileName) + (isInputSignalWhole() ? "" : "-sel") + ".wav";
    Utils.openSaveAsDialog(wavFileData, fileName, "audio/wav", "wav", "WAV audio file"); }
 
-function showAnalysisSection (show: boolean = true) {
-   document.body.classList.toggle("analysisHidden", !show); }
-
 function functionCurveViewerHelpButton1_click() {
    const t = document.getElementById("functionCurveViewerHelpText1")!;
    t.innerHTML = inputSignalViewerWidget.getFormattedHelpText();
@@ -251,7 +250,7 @@ export async function startup() {
    const f0 = Number(usp.get("f0") ?? "0");
    if (audioFileUrl) {
       await Utils.showProgressInfo();
-      showAnalysisSection();
+      DomUtils.setChecked("analysisEnabled", true);
       await loadAudioFileFromUrl(audioFileUrl, f0); }
    refreshMainGui(); }
 
@@ -271,8 +270,6 @@ export function init() {
    populateWindowFunctionSelect("analSpecFunc1", "parabolic", true);
    populateWindowFunctionSelect("analSpecFunc2", "parabolic", true);
    //
-   DomUtils.addClickEventListener("showAnalysisLink", showAnalysisSection);
-   DomUtils.addClickEventListener("hideAnalysisLink", () => showAnalysisSection(false));
    DomUtils.addClickEventListener("functionCurveViewerHelpButton1", functionCurveViewerHelpButton1_click);
    DomUtils.addClickEventListener("loadLocalAudioFileButton", loadLocalAudioFileButton_click);
    DomUtils.addClickEventListener("playInputButton", playInputButton_click);
@@ -282,6 +279,7 @@ export function init() {
    DomUtils.addClickEventListener("analAndSynthButton", analAndSynthButton_click);
    DomUtils.addClickEventListener("analSynthPlayButton", analSynthPlayButton_click);
    inputSignalViewerWidget.addEventListener("segmentchange", () => catchError(inputSignalViewer_segmentChange));
+   DomUtils.addChangeEventListener("analysisEnabled", refreshMainGui);
    DomUtils.addChangeEventListener("analSpecEnabled", refreshMainGui);
    DomUtils.addChangeEventListener("analAmplEnabled", refreshMainGui);
    DomUtils.addChangeEventListener("analFreqEnabled", refreshMainGui);
