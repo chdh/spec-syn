@@ -43,7 +43,7 @@ var outputSampleRate:                  number;
 
 function loadSpectrumCurveEditor (knots: Point[], origSpecCurveFunction?: UniFunction) {
    activeOrigSpecCurveFunction = origSpecCurveFunction;
-   const yMinMax = genDbCurveYMinMax(knots, -80);
+   const yMinMax = genSpectrumCurveYMinMax(knots);
    const editorState: Partial<FunctionCurveEditor.EditorState> = {
       knots:           knots,
       xMin:            0,
@@ -61,7 +61,7 @@ function loadSpectrumCurveEditor (knots: Point[], origSpecCurveFunction?: UniFun
    DomUtils.showElement("showOriginalSpecCurveField", !!origSpecCurveFunction); }
 
 function loadAmplitudeCurveEditor (knots: Point[], tMax: number) {
-   const yMinMax = genDbCurveYMinMax(knots, -22);
+   const yMinMax = genAmplitudeCurveYMinMax(knots);
    const editorState: Partial<FunctionCurveEditor.EditorState> = {
       knots:           knots,
       xMin:            0,
@@ -97,8 +97,8 @@ function loadWobblingCurveEditor (knots: Point[]) {
       knots:           knots,
       xMin:            0,
       xMax:            100,
-      yMin:            -100,
-      yMax:            0,
+      yMin:            -90,
+      yMax:            10,
       extendedDomain:  false,
       relevantXMin:    0,
       gridEnabled:     true,
@@ -108,13 +108,22 @@ function loadWobblingCurveEditor (knots: Point[]) {
       focusShield:     true };
    wobblingEditorWidget.setEditorState(editorState); }
 
-function genDbCurveYMinMax (knots: Point[], loClip: number) : {yMin: number; yMax: number} {
+function genSpectrumCurveYMinMax (knots: Point[]) : {yMin: number; yMax: number} {
+   const yVals = knots.map(knot => knot.y);
+   const hi = Math.min(Math.max(...yVals), 10);
+   if (!Number.isFinite(hi)) {
+      return {yMin: -80, yMax: 0}; }
+   const yMax = Math.ceil(hi + 5);
+   const yMin = yMax - 60;
+   return {yMin, yMax}; }
+
+function genAmplitudeCurveYMinMax (knots: Point[]) : {yMin: number; yMax: number} {
    const yVals1 = knots.map(knot => knot.y);
-   const yVals = yVals1.filter(y => y >= loClip);
+   const yVals = yVals1.filter(y => y >= -22);
    const lo = Math.min(...yVals);
    const hi = Math.max(...yVals);
    if (!Number.isFinite(lo) || !Number.isFinite(hi)) {
-      return {yMin: -70, yMax: 0}; }
+      return {yMin: -25, yMax: 0}; }
    const mid = (lo + hi) / 2;
    const w1 = Math.max(hi - lo, 10);
    const w = w1 * 1.25;
