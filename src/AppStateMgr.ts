@@ -9,6 +9,10 @@ import {UniFunction} from "./Utils.ts";
 
 const defaultSampleRate                = 44100;
 const defaultAgcRmsLevel               = 0.2;
+const defaultTransformationMode        = "basic";
+const defaultF0New                     = 440;
+const defaultFLoBand                   = 1200;
+const defaultFHiBand                   = 1500;
 
 // Simple example:
 // const defaultSpectrumCurveKnots        = convertKnotsArray([[70, -62], [1100, -25], [2600, -68], [4200, -40], [5500, -71]]);
@@ -133,15 +137,15 @@ function decodeCurveDataByType (b64: string, dataType: CurveDataType) : Float64A
 
 //--- URL set/get --------------------------------------------------------------
 
-function setStr (usp: URLSearchParams, parmName: string, parmValue: string) {
-   if (!parmValue) {
+function setStr (usp: URLSearchParams, parmName: string, parmValue: string, defaultValue = "") {
+   if (!parmValue || parmValue == defaultValue) {
       return; }
    usp.set(parmName, parmValue); }
 
-function getStr (usp: URLSearchParams, parmName: string) : string {
+function getStr (usp: URLSearchParams, parmName: string, defaultValue = "") : string {
    const s = usp.get(parmName);
    if (!s) {
-      return ""; }
+      return defaultValue; }
    return s; }
 
 function setNum (usp: URLSearchParams, parmName: string, parmValue: number, defaultValue = NaN) {
@@ -214,49 +218,61 @@ function getKnots (usp: URLSearchParams, parmName: string, xDataType: CurveDataT
 export interface AppState {
    sampleRate:               number;
    agcRmsLevel:              number;
+   transformationMode:       string;
    f0Multiplier:             number;
    specMultiplier:           number;
    specShift:                number;
    evenAmplShift:            number;
+   f0New:                    number;
+   fLoBand:                  number;
+   fHiBand:                  number;
    wobblingEnabled:          boolean;
+   reference:                string;
    spectrumCurveKnots:       Point[];
    amplitudeCurveKnots:      Point[];
    frequencyCurveKnots:      Point[];
-   wobblingCurveKnots:       Point[];
-   reference:                string; }
+   wobblingCurveKnots:       Point[]; }
 
 export interface AppStateUpdate extends Partial<AppState> {
    origSpecCurveFunction?:   UniFunction; }                // used to visualize the original smoothed spectrum curve from the analysis
 
 export function encodeAppStateUrlParms (appState: AppState) : string {
    const usp = new URLSearchParams();
-   setNum(usp, "sampleRate",       appState.sampleRate,     defaultSampleRate);
-   setNum(usp, "agcRmsLevel",      appState.agcRmsLevel,    defaultAgcRmsLevel);
-   setNum(usp, "f0Multiplier",     appState.f0Multiplier,   1);
-   setNum(usp, "specMultiplier",   appState.specMultiplier, 1);
-   setNum(usp, "specShift",        appState.specShift,      0);
-   setNum(usp, "evenAmplShift",    appState.evenAmplShift,  0);
-   setBool(usp, "wobblingEnabled", appState.wobblingEnabled);
-   setKnots(usp, "spectrumCurve",  appState.spectrumCurveKnots,  CurveDataType.freqAsc, CurveDataType.db,   defaultSpectrumCurveKnots);
-   setKnots(usp, "amplitudeCurve", appState.amplitudeCurveKnots, CurveDataType.timeAsc, CurveDataType.db,   defaultAmplitudeCurveKnots);
-   setKnots(usp, "frequencyCurve", appState.frequencyCurveKnots, CurveDataType.timeAsc, CurveDataType.freq, defaultFrequencyCurveKnots);
-   setKnots(usp, "wobblingCurve",  appState.wobblingCurveKnots,  CurveDataType.freqAsc, CurveDataType.db,   defaultWobblingCurveKnots);
-   setStr(usp, "ref", appState.reference);
+   setNum  (usp, "sampleRate",         appState.sampleRate,         defaultSampleRate);
+   setNum  (usp, "agcRmsLevel",        appState.agcRmsLevel,        defaultAgcRmsLevel);
+   setStr  (usp, "transformationMode", appState.transformationMode, defaultTransformationMode);
+   setNum  (usp, "f0Multiplier",       appState.f0Multiplier,       1);
+   setNum  (usp, "specMultiplier",     appState.specMultiplier,     1);
+   setNum  (usp, "specShift",          appState.specShift,          0);
+   setNum  (usp, "evenAmplShift",      appState.evenAmplShift,      0);
+   setNum  (usp, "f0New",              appState.f0New,              defaultF0New);
+   setNum  (usp, "fLoBand",            appState.fLoBand,            defaultFLoBand);
+   setNum  (usp, "fHiBand",            appState.fHiBand,            defaultFHiBand);
+   setBool (usp, "wobblingEnabled",    appState.wobblingEnabled);
+   setStr  (usp, "ref",                appState.reference);
+   setKnots(usp, "spectrumCurve",      appState.spectrumCurveKnots,  CurveDataType.freqAsc, CurveDataType.db,   defaultSpectrumCurveKnots);
+   setKnots(usp, "amplitudeCurve",     appState.amplitudeCurveKnots, CurveDataType.timeAsc, CurveDataType.db,   defaultAmplitudeCurveKnots);
+   setKnots(usp, "frequencyCurve",     appState.frequencyCurveKnots, CurveDataType.timeAsc, CurveDataType.freq, defaultFrequencyCurveKnots);
+   setKnots(usp, "wobblingCurve",      appState.wobblingCurveKnots,  CurveDataType.freqAsc, CurveDataType.db,   defaultWobblingCurveKnots);
    return usp.toString(); }
 
 export function decodeAppStateUrlParms (urlParmsString: string) : AppState {
    const usp = new URLSearchParams(urlParmsString);
    const appState = <AppState>{};
-   appState.sampleRate      = getNum(usp, "sampleRate",     defaultSampleRate);
-   appState.agcRmsLevel     = getNum(usp, "agcRmsLevel",    defaultAgcRmsLevel);
-   appState.f0Multiplier    = getNum(usp, "f0Multiplier",   1);
-   appState.specMultiplier  = getNum(usp, "specMultiplier", 1);
-   appState.specShift       = getNum(usp, "specShift",      0);
-   appState.evenAmplShift   = getNum(usp, "evenAmplShift",  0);
-   appState.wobblingEnabled = getBool(usp, "wobblingEnabled");
+   appState.sampleRate          = getNum  (usp, "sampleRate",         defaultSampleRate);
+   appState.agcRmsLevel         = getNum  (usp, "agcRmsLevel",        defaultAgcRmsLevel);
+   appState.transformationMode  = getStr  (usp, "transformationMode", defaultTransformationMode);
+   appState.f0Multiplier        = getNum  (usp, "f0Multiplier",       1);
+   appState.specMultiplier      = getNum  (usp, "specMultiplier",     1);
+   appState.specShift           = getNum  (usp, "specShift",          0);
+   appState.evenAmplShift       = getNum  (usp, "evenAmplShift",      0);
+   appState.f0New               = getNum  (usp, "f0New",              defaultF0New);
+   appState.fLoBand             = getNum  (usp, "fLoBand",            defaultFLoBand);
+   appState.fHiBand             = getNum  (usp, "fHiBand",            defaultFHiBand);
+   appState.wobblingEnabled     = getBool (usp, "wobblingEnabled");
+   appState.reference           = getStr  (usp, "ref");
    appState.spectrumCurveKnots  = getKnots(usp, "spectrumCurve",  CurveDataType.freqAsc, CurveDataType.db,   defaultSpectrumCurveKnots);
    appState.amplitudeCurveKnots = getKnots(usp, "amplitudeCurve", CurveDataType.timeAsc, CurveDataType.db,   defaultAmplitudeCurveKnots);
    appState.frequencyCurveKnots = getKnots(usp, "frequencyCurve", CurveDataType.timeAsc, CurveDataType.freq, defaultFrequencyCurveKnots);
    appState.wobblingCurveKnots  = getKnots(usp, "wobblingCurve",  CurveDataType.freqAsc, CurveDataType.db,   defaultWobblingCurveKnots);
-   appState.reference = getStr(usp, "ref");
    return appState; }

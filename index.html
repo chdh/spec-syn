@@ -169,22 +169,44 @@
 </div>
 
 <div class="parmBlock">
- <div class="parmField" data-info="Multiplicative factor for the fundamental frequency.">
+ <div class="parmField" data-info="Acoustic transformation mode.">
+  <label class="w-lbl" for="transformationMode">Transformation:</label>
+  <select class="w-inp" id="transformationMode">
+   <option value="basic">Basic operations</option>
+   <option value="transposeRel">Transpose vowel relative</option>
+   <option value="transposeAbs">Transpose vowel absolute</option>
+  </select>
+ </div>
+ <div class="parmField" id="f0MultiplierField" data-info="Multiplicative factor for the fundamental frequency.">
   <label class="w-lbl" for="f0Multiplier">F0 multiplier:</label>
   <input class="w-inp" id="f0Multiplier" type="number" step="any" min="0.001" required>
  </div>
- <div class="parmField" data-info="Multiplicative factor for the frequency axis of the spectrum.">
+ <div class="parmField" id="specMultiplierField" data-info="Multiplicative factor for the frequency axis of the spectrum.">
   <label class="w-lbl" for="specMultiplier">Spec. multiplier:</label>
   <input class="w-inp" id="specMultiplier" type="number" step="any" min="0.001" required>
  </div>
- <div class="parmField" data-info="Shift in Hz for the frequency axis of the spectrum.">
+ <div class="parmField" id="specShiftField" data-info="Shift in Hz for the frequency axis of the spectrum.">
   <label class="w-lbl" for="specShift">Spectrum shift [Hz]:</label>
   <input class="w-inp" id="specShift" type="number" step="any" required>
  </div>
- <div class="parmField" data-info="Shift in dB for the amplitudes of the even numbered harmonics.">
+ <div class="parmField" id="evenAmplShiftField" data-info="Shift in dB for the amplitudes of the even numbered harmonics.">
   <label class="w-lbl" for="evenAmplShift">Even amp. shift [dB]:</label>
   <input class="w-inp" id="evenAmplShift" type="number" step="any" required>
  </div>
+ <div class="parmField" id="f0NewField" data-info="Target value for the new fundamental frequency after transposing the sound.">
+  <label class="w-lbl" for="f0New">New F0 [Hz]:</label>
+  <input class="w-inp" id="f0New" type="number" step="any" min="1"required>
+ </div>
+ <div class="parmField" id="fLoBandField" data-info="End of the lower frequency band.">
+  <label class="w-lbl" for="fLoBand">Lower band &lt; [Hz]:</label>
+  <input class="w-inp" id="fLoBand" type="number" step="any" min="1" required>
+ </div>
+ <div class="parmField" id="fHiBandField" data-info="Start of the upper frequency band.">
+  <label class="w-lbl" for="fHiBand">Upper band &gt; [Hz]:</label>
+  <input class="w-inp" id="fHiBand" type="number" step="any" min="1" required>
+ </div>
+</div>
+<div class="parmBlock">
  <div class="parmField" data-info="Sample rate in Hz for synthesizing the output signal.">
   <label class="w-lbl" for="sampleRate">Sample rate [Hz]:</label>
   <input class="w-inp" id="sampleRate" type="text" required>

@@ -8,6 +8,7 @@ import * as DspUtils from "dsp-collection/utils/DspUtils";
 import * as WindowFunctions from "dsp-collection/signal/WindowFunctions";
 import * as Fft from "dsp-collection/signal/Fft";
 import * as ArrayUtils from "dsp-collection/utils/ArrayUtils";
+import {fuzzyEquals} from "dsp-collection/math/MathUtils";
 import * as DialogManager from "dialog-manager";
 
 import * as Utils from "./Utils.ts";
@@ -114,7 +115,7 @@ function genSpectrumCurveYMinMax (knots: Point[]) : {yMin: number; yMax: number}
    if (!Number.isFinite(hi)) {
       return {yMin: -80, yMax: 0}; }
    const yMax = Math.ceil(hi + 5);
-   const yMin = yMax - 60;
+   const yMin = yMax - 70;
    return {yMin, yMax}; }
 
 function genAmplitudeCurveYMinMax (knots: Point[]) : {yMin: number; yMax: number} {
@@ -155,9 +156,7 @@ function spectrumCurveEditor_customPaintFunction (pctx: FunctionCurveEditor.Cust
 function paintAdjustedSpectrumCurve (pctx: FunctionCurveEditor.CustomPaintContext) {
    if (pctx.pass != 1) {
       return; }
-   const specMultiplier = DomUtils.getValueNum("specMultiplier");
-   const specShift = DomUtils.getValueNum("specShift");
-   if (specMultiplier == 1 && specShift == 0) {
+   if (!isSpectrumAdjustmentActive()) {
       return; }
    const spectrumCurveFunctionAdj = getAdjustedSpectrumCurveFunction();
    pctx.drawFunctionCurve(spectrumCurveFunctionAdj, 0, defaultMaxDisplayFreq, "#37ADFA"); }
@@ -200,20 +199,24 @@ function loadSpectrumViewer (widget: FunctionCurveViewer.Widget, spectrumLog: Fl
 
 //--- App state ---------------------------------------------------------------
 
-function getAppStateFromUi() {
+function getAppStateFromUi() : AppState {
    const appState = <AppState>{};
-   appState.sampleRate      = DomUtils.getValueNum("sampleRate");
-   appState.agcRmsLevel     = DomUtils.getValueNum("agcRmsLevel");
-   appState.f0Multiplier    = DomUtils.getValueNum("f0Multiplier");
-   appState.specMultiplier  = DomUtils.getValueNum("specMultiplier");
-   appState.specShift       = DomUtils.getValueNum("specShift");
-   appState.evenAmplShift   = DomUtils.getValueNum("evenAmplShift");
-   appState.wobblingEnabled = DomUtils.getChecked("wobblingEnabled");
+   appState.sampleRate         = DomUtils.getValueNum("sampleRate");
+   appState.agcRmsLevel        = DomUtils.getValueNum("agcRmsLevel");
+   appState.transformationMode = DomUtils.getValue("transformationMode");
+   appState.f0Multiplier       = DomUtils.getValueNum("f0Multiplier");
+   appState.specMultiplier     = DomUtils.getValueNum("specMultiplier");
+   appState.specShift          = DomUtils.getValueNum("specShift");
+   appState.evenAmplShift      = DomUtils.getValueNum("evenAmplShift");
+   appState.f0New              = DomUtils.getValueNum("f0New");
+   appState.fLoBand            = DomUtils.getValueNum("fLoBand");
+   appState.fHiBand            = DomUtils.getValueNum("fHiBand");
+   appState.wobblingEnabled    = DomUtils.getChecked("wobblingEnabled");
+   appState.reference          = DomUtils.getValue("reference");
    appState.spectrumCurveKnots  = spectrumEditorWidget.getEditorState().knots;
    appState.amplitudeCurveKnots = amplitudeEditorWidget.getEditorState().knots;
    appState.frequencyCurveKnots = frequencyEditorWidget.getEditorState().knots;
    appState.wobblingCurveKnots  = wobblingEditorWidget.getEditorState().knots;
-   appState.reference = DomUtils.getValue("reference");
    return appState; }
 
 function getLastKnotX (knots: Point[]) : number | undefined {
@@ -225,20 +228,25 @@ function genTMax (knots: Point[]) : number {
    return Math.round((t + 0.099) / 0.1) * 0.1; }
 
 function setAppStateToUi (appState: AppState) {
-   DomUtils.setValueNum("sampleRate",     appState.sampleRate);
-   DomUtils.setValueNum("agcRmsLevel",    appState.agcRmsLevel);
-   DomUtils.setValueNum("f0Multiplier",   appState.f0Multiplier);
-   DomUtils.setValueNum("specMultiplier", appState.specMultiplier);
-   DomUtils.setValueNum("specShift",      appState.specShift);
-   DomUtils.setValueNum("evenAmplShift",  appState.evenAmplShift);
-   DomUtils.setChecked("wobblingEnabled", appState.wobblingEnabled);
+   DomUtils.setValueNum("sampleRate",         appState.sampleRate);
+   DomUtils.setValueNum("agcRmsLevel",        appState.agcRmsLevel);
+   DomUtils.setValueNum("f0Multiplier",       appState.f0Multiplier);
+   DomUtils.setValue(   "transformationMode", appState.transformationMode);
+   DomUtils.setValueNum("specMultiplier",     appState.specMultiplier);
+   DomUtils.setValueNum("specShift",          appState.specShift);
+   DomUtils.setValueNum("evenAmplShift",      appState.evenAmplShift);
+   DomUtils.setValueNum("f0New",              appState.f0New);
+   DomUtils.setValueNum("fLoBand",            appState.fLoBand);
+   DomUtils.setValueNum("fHiBand",            appState.fHiBand);
+   DomUtils.setChecked( "wobblingEnabled",    appState.wobblingEnabled);
+   DomUtils.setValue(   "reference",          appState.reference);
    const tMax = Math.max(genTMax(appState.amplitudeCurveKnots), genTMax(appState.frequencyCurveKnots));
    loadSpectrumCurveEditor(appState.spectrumCurveKnots);
    loadAmplitudeCurveEditor(appState.amplitudeCurveKnots, tMax);
    loadFrequencyCurveEditor(appState.frequencyCurveKnots, tMax);
    loadWobblingCurveEditor(appState.wobblingCurveKnots);
-   DomUtils.setValue("reference", appState.reference);
-   refreshSpecDistIfVisible(); }
+   refreshSpecDistIfVisible();
+   refreshMainGui(); }
 
 function loadUiAppStateFromUrl (suppressCurves = false) {
    const urlParmsString = window.location.hash.substring(1);
@@ -374,25 +382,89 @@ function refreshSpecDistIfVisible() {
 function refreshSpectrumEditor() {
    spectrumEditorWidget.requestRefresh(); }
 
-function getDuration() {
+function getDuration() : number {
    const ampliduteEditorState = amplitudeEditorWidget.getEditorState();
    const frequencyEditorState = frequencyEditorWidget.getEditorState();
    return Math.min(getLastKnotX(ampliduteEditorState.knots) ?? 1, getLastKnotX(frequencyEditorState.knots) ?? 1); }
 
-function getAdjustedFrequencyCurveFunction() {
-   const f0Multiplier = DomUtils.getValueNum("f0Multiplier");
+function calcF0Orig() : number {
+   const amplitudeCurveFunction = amplitudeEditorWidget.getFunction();
    const frequencyCurveFunction = frequencyEditorWidget.getFunction();
-   if (f0Multiplier == 1) {
+   const duration = getDuration();
+   return SpecSyn.computeAverageF0(amplitudeCurveFunction, frequencyCurveFunction, duration); }
+
+function getAdjustedFrequencyCurveFunction() : UniFunction {
+   const transformationMode = DomUtils.getValue("transformationMode");
+   let f0Multiplier = 1;
+   switch (transformationMode) {
+      case "basic": case "transposeRel": {
+         f0Multiplier = DomUtils.getValueNum("f0Multiplier");
+         break; }
+      case "transposeAbs": {
+         const f0New = DomUtils.getValueNum("f0New");
+         const f0Orig = calcF0Orig();
+         f0Multiplier = f0New / f0Orig;
+         break; }}
+   const frequencyCurveFunction = frequencyEditorWidget.getFunction();
+   if (fuzzyEquals(f0Multiplier, 1, 1E-5)) {
       return frequencyCurveFunction; }
    return (t: number) => frequencyCurveFunction(t) * f0Multiplier; }
 
-function getAdjustedSpectrumCurveFunction() {
-   const specMultiplier = DomUtils.getValueNum("specMultiplier");
-   const specShift = DomUtils.getValueNum("specShift");
-   const spectrumCurveFunction  = spectrumEditorWidget.getFunction();
-   if (specMultiplier == 1 && specShift == 0) {
-      return spectrumCurveFunction; }
-   return (f: number) => spectrumCurveFunction(f / specMultiplier - specShift); }
+function transposeVowelSpectrumCurve (spectrumCurveFunction: UniFunction, f0Delta: number) : UniFunction {
+   const fLoBand = DomUtils.getValueNum("fLoBand");        // end of lower band
+   const fHiBand = DomUtils.getValueNum("fHiBand");        // start of upper band
+   const w = fHiBand  - fLoBand;                           // width of stretch band
+   const w2 = w + Math.abs(f0Delta);                       // extended width = width after expansion = width before compression
+   const fLoBand2 = fLoBand - Math.abs(f0Delta);           // end of reduced lower band
+   const fLoBand3 = (f0Delta > 0) ? fLoBand : fLoBand2;    // edge frequency for transformed frequency
+   return (fTrans: number) => {                            // new spectrum function curve for transformed spectrum
+      let fOrig: number;
+      // `fTrans` is the frequency in the transformed spectrum.
+      // `fOrig` is the frequency in the original spectrum.
+      // The transformation logic here is inverse, because we have to map `fTrans` to `fOrig`.
+      if (fTrans < fLoBand3) {                             // f is in the lower band (or reduced lower band for down transposition)
+         fOrig = fTrans - f0Delta; }                       // shift spectrum by delta F0 in lower band
+       else if (fTrans < fHiBand) {                        // f is within the stretch band between lower and upper bands
+         if (f0Delta > 0) {                                // transpose upwards -> compress spectrum -> inverse expansion
+            const p = (fTrans - fLoBand) / w;              // linear position for compression
+            fOrig = fLoBand2 + w2 * p; }                   // linear compression of [fLoBand - f0Delta .. fHiBand] to [fLoBand .. fHiBand]
+          else {                                           // transpose downwards -> expand spectrum -> inverse compression
+            const p = (fTrans - fLoBand2) / w2;            // linear position for expansion
+            fOrig = fLoBand + w * p; }}                    // linear expansion of [fLoBand .. fHiBand] to [fLoBand - abs(f0Delta) .. fHiBand]
+       else {                                              // f is in the upper band
+         fOrig = fTrans; }                                 // no transformation in upper band
+      return spectrumCurveFunction(fOrig); }; }
+
+function adjustSpectrumCurveFunction (spectrumCurveFunction: UniFunction) : UniFunction {
+   const transformationMode = DomUtils.getValue("transformationMode");
+   switch (transformationMode) {
+      case "basic": {
+         const specMultiplier = DomUtils.getValueNum("specMultiplier");
+         const specShift = DomUtils.getValueNum("specShift");
+         if (specMultiplier == 1 && specShift == 0) {
+            return spectrumCurveFunction; }
+         return (f: number) => spectrumCurveFunction(f / specMultiplier - specShift); }
+      case "transposeRel": case "transposeAbs": {
+         const f0Orig = calcF0Orig();
+         let f0New: number;
+         if (transformationMode == "transposeRel") {
+            const f0Multiplier = DomUtils.getValueNum("f0Multiplier");
+            f0New = f0Orig * f0Multiplier; }
+          else {
+            f0New = DomUtils.getValueNum("f0New"); }
+         const f0Delta = f0New - f0Orig;
+         if (Math.abs(f0Delta) < 0.1) {
+            return spectrumCurveFunction; }
+         return transposeVowelSpectrumCurve(spectrumCurveFunction, f0Delta); }
+      default: {
+         return spectrumCurveFunction; }}}
+
+function getAdjustedSpectrumCurveFunction() : UniFunction {
+   return adjustSpectrumCurveFunction(spectrumEditorWidget.getFunction()); };
+
+function isSpectrumAdjustmentActive() : boolean {
+   const dummy = (_f: number) => 0;
+   return adjustSpectrumCurveFunction(dummy) != dummy; }
 
 function genOutputSpectrum() {
    const signal = outputSignal.subarray(0, Math.floor(outputSignal.length / 2) * 2);     // make length even for speed optimization
@@ -409,22 +481,25 @@ export function synthesize() {
    const evenAmplShift   = DomUtils.getValueNum("evenAmplShift");
    const wobblingEnabled = DomUtils.getChecked("wobblingEnabled");
 
+   const duration = getDuration();
+
    const amplitudeCurveFunction = amplitudeEditorWidget.getFunction();
    const wobblingCurveFunction  = wobblingEnabled ? wobblingEditorWidget.getFunction() : undefined;
+   const frequencyCurveFunction = getAdjustedFrequencyCurveFunction();
 
    const sp = <SpecSyn.SynthesizerParms>{};
    sp.sampleRate = sampleRate;
    sp.agcRmsLevel = agcRmsLevel;
-   sp.duration = getDuration();
+   sp.duration = duration;
    const spectrumCurveFunctionAdj = getAdjustedSpectrumCurveFunction();
    sp.spectrumCurveFunctionOdd = spectrumCurveFunctionAdj;
    sp.spectrumCurveFunctionEven = (evenAmplShift == 0) ? spectrumCurveFunctionAdj : (f: number) => spectrumCurveFunctionAdj(f) + evenAmplShift;
    sp.amplitudeCurveFunction = amplitudeCurveFunction;
-   sp.frequencyCurveFunction = getAdjustedFrequencyCurveFunction();
+   sp.frequencyCurveFunction = frequencyCurveFunction;
    sp.wobblingCurveFunction = wobblingCurveFunction;
-
    outputSignal = SpecSyn.synthesize(sp);
-   const averageF0 = SpecSyn.computeAverageF0(sp);
+
+   const averageF0 = SpecSyn.computeAverageF0(amplitudeCurveFunction, frequencyCurveFunction, duration);
    outputSampleRate = sampleRate;
    outputSignalValid = true;
    loadSignalViewer(outputSignalViewerWidget, outputSignal, outputSampleRate);
@@ -468,11 +543,19 @@ function saveOutputWavFileButton_click() {
 function refreshMainGui() {
    outputSignalViewerWidget.disabled = !outputSignalValid;
    const wobblingEnabled = DomUtils.getChecked("wobblingEnabled");
+   const transformationMode = DomUtils.getValue("transformationMode");
    DomUtils.setText("synthesizeAndPlayButton", audioPlayer.isPlaying() ? "Stop" : "Synth + Play");
    DomUtils.enableElement("playOutputButton", outputSignalValid);
    DomUtils.setText("playOutputButton", audioPlayer.isPlaying() ? "Stop" : "Play");
    DomUtils.enableElement("saveOutputWavFileButton", outputSignalValid);
-   DomUtils.showElement("wobblingSection", wobblingEnabled); }
+   DomUtils.showElement("wobblingSection", wobblingEnabled);
+   DomUtils.showElement("f0MultiplierField", transformationMode == "basic" || transformationMode == "transposeRel");
+   DomUtils.showElement("specMultiplierField", transformationMode == "basic");
+   DomUtils.showElement("specShiftField", transformationMode == "basic");
+   DomUtils.showElement("evenAmplShiftField", transformationMode == "basic");
+   DomUtils.showElement("f0NewField", transformationMode == "transposeAbs");
+   DomUtils.showElement("fLoBandField", transformationMode == "transposeRel" || transformationMode == "transposeAbs");
+   DomUtils.showElement("fHiBandField", transformationMode == "transposeRel" || transformationMode == "transposeAbs"); }
 
 function functionCurveEditorHelpButton_click() {
    const t = document.getElementById("functionCurveEditorHelpText")!;
@@ -484,7 +567,7 @@ function functionCurveViewerHelpButton2_click() {
    t.innerHTML = outputSignalViewerWidget.getFormattedHelpText();
    t.classList.toggle("hidden"); }
 
-function polulateWindowFunctionSelect (elementId: string, defaultWindowFunctionId: string) {
+function populateWindowFunctionSelect (elementId: string, defaultWindowFunctionId: string) {
    const selectElement = <HTMLSelectElement>document.getElementById(elementId)!;
    for (const d of WindowFunctions.windowFunctionIndex) {
       const selected = d.id == defaultWindowFunctionId;
@@ -508,7 +591,7 @@ export function init() {
    wobblingEditorWidget       = new FunctionCurveEditor.Widget(wobblingEditorCanvas);
    outputSignalViewerWidget   = new FunctionCurveViewer.Widget(outputSignalViewerCanvas);
    outputSpectrumViewerWidget = new FunctionCurveViewer.Widget(outputSpectrumViewerCanvas);
-   polulateWindowFunctionSelect("outSpecWindowFunction", "hann");
+   populateWindowFunctionSelect("outSpecWindowFunction", "hann");
    //
    DomUtils.addClickEventListener("synthesizeButton", synthesizeButton_click);
    DomUtils.addClickEventListener("synthesizeAndPlayButton", synthesizeAndPlayButton_click);
@@ -520,14 +603,19 @@ export function init() {
    //
    DomUtils.addChangeEventListener("specDistPaintMode", refreshSpecDist);
    DomUtils.addChangeEventListener("showOriginalSpecCurve", showOriginalSpecCurve_change);
-   DomUtils.addChangeEventListener("f0Multiplier",  refreshSpecDistIfVisible);
+   DomUtils.addChangeEventListener("transformationMode", refreshMainGui);
+   DomUtils.addChangeEventListener("transformationMode", refreshSpectrumEditor);
+   DomUtils.addChangeEventListener("f0Multiplier", refreshSpecDistIfVisible);
+   DomUtils.addChangeEventListener("f0Multiplier", refreshSpectrumEditor);               // (only for mode transposeRel relevant, not in basic mode)
    DomUtils.addChangeEventListener("evenAmplShift", refreshSpecDistIfVisible);
+   DomUtils.addChangeEventListener("specMultiplier", refreshSpectrumEditor);
+   DomUtils.addChangeEventListener("f0New", refreshSpectrumEditor);
+   DomUtils.addChangeEventListener("fLoBand", refreshSpectrumEditor);
+   DomUtils.addChangeEventListener("fHiBand", refreshSpectrumEditor);
+   DomUtils.addChangeEventListener("specShift", refreshSpectrumEditor);
+   DomUtils.addChangeEventListener("wobblingEnabled", refreshMainGui);
    amplitudeEditorWidget.addEventListener("change", refreshSpecDistIfVisible);
    frequencyEditorWidget.addEventListener("change", refreshSpecDistIfVisible);
    //
-   DomUtils.addChangeEventListener("specMultiplier", refreshSpectrumEditor);
-   DomUtils.addChangeEventListener("specShift",      refreshSpectrumEditor);
-   //
-   DomUtils.addChangeEventListener("wobblingEnabled", refreshMainGui);
    window.onpopstate = () => catchError(loadUiAppStateFromUrl);
    refreshMainGui(); }
