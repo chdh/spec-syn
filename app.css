@@ -124,6 +124,7 @@ select:focus,
    z-index: 2;
    border: 1px solid #AAAAAA;
    border-radius: 10px;
+   color: black;
    background-color: #FFFFDD;
    padding: 10px 12px; }
 .miniControlsBelowViewer .fieldInfoText {
@@ -190,6 +191,8 @@ div.functionCurveEditorFrame {
 .miniControlsBelowViewer,
 .miniControlsBelowViewer .miniPseudoButton {
    font-size: 13px; }
+.miniPseudoButton {
+   position: relative; }
 .miniControlsField {
    position: relative;
    display: flex;

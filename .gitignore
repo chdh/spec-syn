@@ -1,6 +1,8 @@
 $$BackupControl.txt
+AGENTS.md
 app.js
 build.bat
+CLAUDE.md
 experiments
 node_modules
 notes.txt

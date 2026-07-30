@@ -17,7 +17,7 @@ async function performInitialProcessing (inputSignalIsAvailable: boolean) {
       if (inputSignalIsAvailable || DomUtils.getChecked("wobblingEnabled")) {
          await Utils.showProgressInfo(); }
       if (inputSignalIsAvailable) {
-         AnalysisGui.analyze(); }
+         AnalysisGui.analyze(true); }
       SynthesisGui.synthesize();
       DialogManager.closeProgressInfo();                                       // popup must be closed before setFocus()
       DomUtils.setFocus("playOutputButton", {preventScroll: true}); }

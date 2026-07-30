@@ -283,6 +283,8 @@ export function updateAppStateFromAnalysis (appState: AppStateUpdate) {
       loadFrequencyCurveEditor(appState.frequencyCurveKnots, tMax); }
    if (appState.wobblingCurveKnots) {
       loadWobblingCurveEditor(appState.wobblingCurveKnots); }
+   if (appState.specFileJson) {
+      loadSpectrumFile(appState.specFileJson); }
    refreshSpecDistIfVisible(); }
 
 //--- Spectral distribution ---------------------------------------------------
@@ -377,6 +379,55 @@ function refreshSpecDistIfVisible() {
    if (isSpecDistVisible()) {
       refreshSpecDist(); }}
 
+//--- Load spectrum from JSON file --------------------------------------------
+
+function convertSpectrumResolution (inSpec: ArrayLike<number>, inSpecRes: number, outSpecRes: number) {
+   const scf = outSpecRes / inSpecRes;                                         // target value for the spectrum compression factor
+   // The purpose of the following adjustment is to get the optimum match for inLen / outLen = scf.
+   let inLen: number;                                                          // adjusted input array length
+   let outLen: number;
+   if (scf < 1) {                                                              // expand spectrum (this case should normally not occur)
+      inLen = inSpec.length;
+      outLen = Math.round(inSpec.length / scf); }
+    else {                                                                     // compress spectrum (this is the normal case)
+      outLen = Math.floor(inSpec.length / scf);
+      inLen = Math.min(Math.round(outLen * scf), inSpec.length); }             // note that the rounding introduces a small error
+   const truncInSpec = new Float64Array(inLen);
+   ArrayUtils.copySubarray(inSpec, 0, truncInSpec, 0, inLen);
+   const outSpec = DspUtils.resampleDbSpectrum(truncInSpec, outLen);
+   return outSpec; }
+
+// Note that the amplitude and frequency curves must already be valid when this function is called.
+function loadSpectrumFile (json: string) {
+   const r = JSON.parse(json);
+   if (!(typeof r == "object") || !Utils.isArrayOfNumbers(r.spectrum) || !Number.isFinite(r.specRes)) {
+      throw new Error("Incompatible spectrum JSON data."); }
+   const segmentStart = <number>(r.segmentStart ?? 0);
+   const segmentLen = <number>(r.segmentLen ?? 0);
+   const f0 = calcF0Orig(segmentStart, segmentLen);
+      // Note that the (optional) segment specified within the spectrum JSON file is used
+      // to determine the F0 value used for the compaction of the spectrum.
+      // This is important for when the spectrum of the nucleus of a vowel sound is used.
+   if (!Number.isFinite(f0) || f0 < 60 || f0 > 1000) {
+      throw new Error("F0 estimation failed."); }
+   const harmSpec = convertSpectrumResolution(r.spectrum, r.specRes, f0);
+   const knots : Point[] = <any>Array.from(harmSpec, (y, i) => ({x: i * f0, y}));
+   if (knots.length >= 2) {
+      knots[0].x = f0 / 2;
+      knots[0].y = knots[1].y;
+      const lastKnot = knots[knots.length - 1];
+      if (lastKnot.y > -99) {
+         knots.push({x: lastKnot.x + 2 * f0, y: -99}); }}
+   const origSpecCurveFunction = (f: number) => r.spectrum[Math.round(f / r.specRes)];
+   loadSpectrumCurveEditor(knots, origSpecCurveFunction); }
+
+async function loadLocalSpectrumFile (file: File) {
+   const json = await file.text();
+   loadSpectrumFile(json); }
+
+function loadSpectrumButton_click() {
+   Utils.openFileOpenDialog((file: File) => catchError(loadLocalSpectrumFile, file)); }
+
 //--- Main functions ----------------------------------------------------------
 
 function refreshSpectrumEditor() {
@@ -387,11 +438,17 @@ function getDuration() : number {
    const frequencyEditorState = frequencyEditorWidget.getEditorState();
    return Math.min(getLastKnotX(ampliduteEditorState.knots) ?? 1, getLastKnotX(frequencyEditorState.knots) ?? 1); }
 
-function calcF0Orig() : number {
+function calcF0Orig (segmentStart = 0, segmentLen = 0) : number {
    const amplitudeCurveFunction = amplitudeEditorWidget.getFunction();
    const frequencyCurveFunction = frequencyEditorWidget.getFunction();
    const duration = getDuration();
-   return SpecSyn.computeAverageF0(amplitudeCurveFunction, frequencyCurveFunction, duration); }
+   let segStart = segmentStart;
+   let segLen = segmentLen ? Math.min(segmentLen, duration - segStart) : duration - segStart;
+   if (segStart < 0 || segLen < 0.005 || segStart + segLen > duration + 1E-3) {
+      console.log("Warning: Segment for F0 calculation is invalid. Using full sound as fallback.");
+      segStart = 0;
+      segLen = duration; }
+   return SpecSyn.computeAverageF0(amplitudeCurveFunction, frequencyCurveFunction, segStart, segLen); }
 
 function getAdjustedFrequencyCurveFunction() : UniFunction {
    const transformationMode = DomUtils.getValue("transformationMode");
@@ -499,7 +556,7 @@ export function synthesize() {
    sp.wobblingCurveFunction = wobblingCurveFunction;
    outputSignal = SpecSyn.synthesize(sp);
 
-   const averageF0 = SpecSyn.computeAverageF0(amplitudeCurveFunction, frequencyCurveFunction, duration);
+   const averageF0 = SpecSyn.computeAverageF0(amplitudeCurveFunction, frequencyCurveFunction, 0, duration);
    outputSampleRate = sampleRate;
    outputSignalValid = true;
    loadSignalViewer(outputSignalViewerWidget, outputSignal, outputSampleRate);
@@ -600,6 +657,7 @@ export function init() {
    DomUtils.addClickEventListener("saveOutputWavFileButton", saveOutputWavFileButton_click);
    DomUtils.addClickEventListener("functionCurveEditorHelpButton", functionCurveEditorHelpButton_click);
    DomUtils.addClickEventListener("functionCurveViewerHelpButton2", functionCurveViewerHelpButton2_click);
+   DomUtils.addClickEventListener("loadSpectrumButton", loadSpectrumButton_click);
    //
    DomUtils.addChangeEventListener("specDistPaintMode", refreshSpecDist);
    DomUtils.addChangeEventListener("showOriginalSpecCurve", showOriginalSpecCurve_change);

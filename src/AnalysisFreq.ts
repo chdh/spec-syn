@@ -4,7 +4,7 @@ import {Point} from "function-curve-editor";
 import * as HarmAnal from "harm-syn/analysis/HarmAnal";
 
 export interface GuiParms {                                // GUI parameters
-   f0Reference:              number;                       // reference value for the fundamental frequency
+   f0Reference:              number;                       // reference value for the fundamental frequency or 0
    analFreqStepWidth:        number; }                     // step width [s] for generating the knots for the editable frequency function curve
 
 export function analyzeFrequencyCurve (signal: Float32Array, sampleRate: number, parms: GuiParms) : Point[] {

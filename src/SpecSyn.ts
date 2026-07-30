@@ -56,12 +56,12 @@ export function synthesize (sp: SynthesizerParms) : Float64Array {
    return signal; }
 
 // Computes the weighted average F0 value.
-export function computeAverageF0 (amplitudeCurveFunction: UniFunction, frequencyCurveFunction: UniFunction, duration: number) : number {
+export function computeAverageF0 (amplitudeCurveFunction: UniFunction, frequencyCurveFunction: UniFunction, segmentStart: number, segmentLen: number) : number {
    const amplMin = -30;
    const amplMax = 30;
    let vAcc = 0;
    let wAcc = 0;
-   for (let time = 0; time < duration; time += 0.005) {
+   for (let time = segmentStart; time < segmentStart + segmentLen; time += 0.005) {
       const ampl = amplitudeCurveFunction(time);                               // overall amplitude [dB] at current position
       if (!Number.isFinite(ampl) || ampl < amplMin || ampl > amplMax) {
          continue; }

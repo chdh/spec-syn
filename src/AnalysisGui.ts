@@ -29,6 +29,8 @@ var inputSampleRate:                   number;
 var inputFileName:                     string;
 var inputFileF0:                       number;                       // fundamental frequency associated with input file or 0
 
+var specFileJson:                      string = "";                  // optional prebuilt spectrum file as input for analysis
+
 //--- Signal viewer ------------------------------------------------------------
 
 function loadSignalViewer (widget: FunctionCurveViewer.Widget, signal: ArrayLike<number>, sampleRate: number) {
@@ -79,13 +81,13 @@ function initF0Reference() {
     else {
       setF0ReferenceFromPitch(); }}
 
-async function loadAudioFileData (fileData: ArrayBuffer, fileName: string, f0: number = 0) {
-   const audioData = await AudioUtils.decodeAudioFileData(fileData);
+async function loadAudioFileData (audioFileData: ArrayBuffer, audioFileName: string, f0: number = 0) {
+   const audioData = await AudioUtils.decodeAudioFileData(audioFileData);
    inputSignal = audioData.channelData[0];                 // only the first channel is used
    inputSignalStart = 0;
    inputSignalEnd = inputSignal.length;
    inputSampleRate = audioData.sampleRate;
-   inputFileName = fileName;
+   inputFileName = audioFileName;
    inputFileF0 = f0;
    inputSignalValid = true;
    loadSignalViewer(inputSignalViewerWidget, inputSignal, inputSampleRate);
@@ -93,20 +95,14 @@ async function loadAudioFileData (fileData: ArrayBuffer, fileName: string, f0: n
    setInputSignalInfo();
    refreshMainGui(); }
 
-async function loadFileFromUrl (url: string) : Promise<ArrayBuffer> {
-   const response = await fetch(url, {mode: "cors", credentials: "include"}); // (server must send "Access-Control-Allow-Origin" header field or have same origin)
-   if (!response.ok) {
-      throw new Error("Request failed for " + url); }
-   return await response.arrayBuffer(); }
+async function loadAudioFileFromUrl (audioFileUrl: string, f0: number) {
+   const audioFileData = await loadBinaryFileFromUrl(audioFileUrl);
+   const audioFileName = audioFileUrl.substring(audioFileUrl.lastIndexOf("/") + 1);
+   await loadAudioFileData(audioFileData, audioFileName, f0); }
 
-async function loadAudioFileFromUrl (url: string, f0: number) {
-   const fileData = await loadFileFromUrl(url);
-   const fileName = url.substring(url.lastIndexOf("/") + 1);
-   await loadAudioFileData(fileData, fileName, f0); }
-
-async function loadLocalAudioFile (file: File) {
-   const fileData = await file.arrayBuffer();
-   await loadAudioFileData(fileData, file.name); }
+async function loadLocalAudioFile (audioFile: File) {
+   const audioFileData = await audioFile.arrayBuffer();
+   await loadAudioFileData(audioFileData, audioFile.name); }
 
 function loadLocalAudioFileButton_click() {
    audioPlayer.stop();
@@ -146,16 +142,19 @@ function analyzeAmplitudeCurve (appState: AppStateUpdate) {
 function analyzeFrequencyCurve (appState: AppStateUpdate) {
    const parms = <AnalysisFreq.GuiParms>{};
    parms.analFreqStepWidth = DomUtils.getValueNum("analFreqStepWidth") / 1000; // convert [ms] to [s]
+   parms.f0Reference       = DomUtils.getValueNum("f0Reference");
    appState.frequencyCurveKnots = AnalysisFreq.analyzeFrequencyCurve(getInputSignalSelection(), inputSampleRate, parms); }
 
-export function analyze() {
+export function analyze (isStartupPhase = false) {
    const appState: AppStateUpdate = {};
-   if (DomUtils.getChecked("analSpecEnabled")) {
+   const usePrebuiltSpectrum = isStartupPhase && specFileJson != "";           // when a pre-built spectrum file is passed on the URL, the spectrum analysis is bypassed
+   if (DomUtils.getChecked("analSpecEnabled") && !usePrebuiltSpectrum) {
       analyzeSpectrum(appState); }
    if (DomUtils.getChecked("analAmplEnabled")) {
       analyzeAmplitudeCurve(appState); }
    if (DomUtils.getChecked("analFreqEnabled")) {
       analyzeFrequencyCurve(appState); }
+   appState.specFileJson = usePrebuiltSpectrum ? specFileJson : "";
    SynthesisGui.updateAppStateFromAnalysis(appState); }
 
 async function analyzeButton_click() {
@@ -243,15 +242,35 @@ function functionCurveViewerHelpButton1_click() {
    t.innerHTML = inputSignalViewerWidget.getFormattedHelpText();
    t.classList.toggle("hidden"); }
 
+async function fetchFile (url: string) : Promise<Response> {
+   const response = await fetch(url, {mode: "cors", credentials: "include"});
+      // The sserver must send the "Access-Control-Allow-Origin" header field or have the same origin.
+   if (!response.ok) {
+      throw new Error("Request failed for " + url); }
+   return response; }
+
+async function loadBinaryFileFromUrl (url: string) : Promise<ArrayBuffer> {
+   const response = await fetchFile(url);
+   return await response.arrayBuffer(); }
+
+async function loadTextFileFromUrl (url: string) : Promise<string> {
+   const response = await fetchFile(url);
+   return await response.text(); }
+
 export async function startup() {
    const parmsString = window.location.hash.substring(1);
    const usp = new URLSearchParams(parmsString);
    const audioFileUrl = usp.get("file");
+   const specFileUrl = usp.get("specFile");
    const f0 = Number(usp.get("f0") ?? "0");
+   //
    if (audioFileUrl) {
       await Utils.showProgressInfo();
       DomUtils.setChecked("analysisEnabled", true);
       await loadAudioFileFromUrl(audioFileUrl, f0); }
+   if (specFileUrl) {
+      specFileJson = await loadTextFileFromUrl(specFileUrl); }
+   //
    refreshMainGui(); }
 
 function populateWindowFunctionSelect (elementId: string, defaultWindowFunctionId: string, addNone = false) {

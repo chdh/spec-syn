@@ -38,6 +38,9 @@ export function decodeNumber (s: string) : number | undefined {
    const n = Number(s.replace(/[\u{2000}-\u{20FF}]/gu, ""));
    return isFinite(n) ? n : undefined; }
 
+export function isArrayOfNumbers (a: unknown) : a is number[] {
+   return Array.isArray(a) && a.every(e => typeof e === 'number' && Number.isFinite(e)); }
+
 export function catchError (f: Function, ...args: any[]) {
    void catchErrorAsync(f, ...args); }
 
